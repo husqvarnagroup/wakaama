@@ -71,6 +71,9 @@ extern "C" {
 #define LWM2M_SUPPORT_JSON
 #endif
 #ifndef LWM2M_VERSION_1_0
+#ifndef LWM2M_SUPPORT_SENML_CBOR
+#define LWM2M_SUPPORT_SENML_CBOR
+#endif
 #ifndef LWM2M_SUPPORT_SENML_JSON
 #define LWM2M_SUPPORT_SENML_JSON
 #endif
@@ -79,6 +82,9 @@ extern "C" {
 
 #ifdef LWM2M_BOOTSTRAP_SERVER_MODE
 #ifndef LWM2M_VERSION_1_0
+#ifndef LWM2M_SUPPORT_SENML_CBOR
+#define LWM2M_SUPPORT_SENML_CBOR
+#endif
 #ifndef LWM2M_SUPPORT_SENML_JSON
 #define LWM2M_SUPPORT_SENML_JSON
 #endif
@@ -380,13 +386,17 @@ typedef enum
     LWM2M_CONTENT_TLV        = 11542,
     LWM2M_CONTENT_JSON_OLD   = 1543,     // Keep old value for backward-compatibility
     LWM2M_CONTENT_JSON       = 11543,
-    LWM2M_CONTENT_SENML_JSON = 110
+    LWM2M_CONTENT_SENML_JSON = 110,
+    LWM2M_CONTENT_CBOR       = 60,
+    LWM2M_CONTENT_SENML_CBOR = 112,
 } lwm2m_media_type_t;
 
 lwm2m_data_t * lwm2m_data_new(int size);
 int lwm2m_data_parse(lwm2m_uri_t * uriP, const uint8_t * buffer, size_t bufferLen, lwm2m_media_type_t format, lwm2m_data_t ** dataP);
 int lwm2m_data_serialize(lwm2m_uri_t * uriP, int size, lwm2m_data_t * dataP, lwm2m_media_type_t * formatP, uint8_t ** bufferP);
 void lwm2m_data_free(int size, lwm2m_data_t * dataP);
+int lwm2m_data_append(int *sizeP, lwm2m_data_t **dataP, int addDataSize, lwm2m_data_t *addDataP);
+int lwm2m_data_append_one(int *sizeP, lwm2m_data_t **dataP, lwm2m_data_type_t type, uint16_t id);
 
 void lwm2m_data_encode_string(const char * string, lwm2m_data_t * dataP);
 void lwm2m_data_encode_nstring(const char * string, size_t length, lwm2m_data_t * dataP);
