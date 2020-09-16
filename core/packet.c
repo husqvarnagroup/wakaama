@@ -579,7 +579,7 @@ void lwm2m_handle_packet(lwm2m_context_t * contextP,
             {
                 coap_error_code = handle_request(contextP, fromSessionH, message, response);
             }
-            if (coap_error_code==NO_ERROR)
+            if (coap_error_code == NO_ERROR)
             {
                 /* Save original payload pointer for later freeing. Payload in response may be updated. */
                 uint8_t *payload = response->payload;

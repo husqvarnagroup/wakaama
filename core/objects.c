@@ -291,7 +291,7 @@ uint8_t object_create(lwm2m_context_t * contextP,
 
     LOG_URI(uriP);
 
-    if (length == 0 || buffer == 0)
+    if (length == 0 || buffer == NULL)
     {
         return COAP_400_BAD_REQUEST;
     }

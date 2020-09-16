@@ -65,7 +65,7 @@
  *  test |  1 |    R/W     |    No     |    Yes    | Integer | 0-255 |       |             |
  *  exec |  2 |     E      |    No     |    Yes    |         |       |       |             |
  *  dec  |  3 |    R/W     |    No     |    Yes    |  Float  |       |       |             |
- *  str  |  4 |    R/W     |    No     |    Yes    | String  |       |       |             |
+ *  str  |  5 |    R/W     |    No     |    No     | String  |       |       |             |
  */
 
 #include "liblwm2m.h"
@@ -151,7 +151,7 @@ static uint8_t prv_read(uint16_t instanceId,
         *numDataP = 3;
         (*dataArrayP)[0].id = 1;
         (*dataArrayP)[1].id = 3;
-        (*dataArrayP)[2].id = 4;
+        (*dataArrayP)[2].id = 5;
     }
 
     for (i = 0 ; i < *numDataP ; i++)
@@ -193,7 +193,7 @@ static uint8_t prv_discover(uint16_t instanceId,
         (*dataArrayP)[0].id = 1;
         (*dataArrayP)[1].id = 2;
         (*dataArrayP)[2].id = 3;
-        (*dataArrayP)[3].id = 4;
+        (*dataArrayP)[3].id = 5;
     }
     else
     {
@@ -204,7 +204,7 @@ static uint8_t prv_discover(uint16_t instanceId,
             case 1:
             case 2:
             case 3:
-            case 4:
+            case 5:
                 break;
             default:
                 return COAP_404_NOT_FOUND;
@@ -250,12 +250,19 @@ static uint8_t prv_write(uint16_t instanceId,
                     return COAP_400_BAD_REQUEST;
                 }
                 break;
-            case 4:
+            case 5:
+                if (dataArray[i].type == LWM2M_TYPE_STRING || dataArray[i].type == LWM2M_TYPE_OPAQUE
+                {
                 tmp = targetP->str;
                 targetP->str = lwm2m_malloc(dataArray[i].value.asBuffer.length + 1);
                 strncpy(targetP->str, (char*)dataArray[i].value.asBuffer.buffer, dataArray[i].value.asBuffer.length);
                 lwm2m_free(tmp);
                 break;
+                }
+                else
+                {
+                    return COAP_400_BAD_REQUEST;
+                }
             default:
                 return COAP_404_NOT_FOUND;
         }
@@ -330,7 +337,7 @@ static uint8_t prv_exec(uint16_t instanceId,
             return COAP_204_CHANGED;
         case 3:
             return COAP_405_METHOD_NOT_ALLOWED;
-        case 4:
+        case 5:
             return COAP_405_METHOD_NOT_ALLOWED;
         default:
             return COAP_404_NOT_FOUND;
