@@ -651,7 +651,7 @@ static void prv_handleRegistrationReply(lwm2m_context_t * contextP,
             }
             dataP->server->location = coap_get_multi_option_as_path_string(packet->location_path);
 
-            LOG_ARG("%d Registration successful", targetP->shortID);
+            LOG_ARG("%d Registration successful", dataP->server->shortID);
 #ifndef LWM2M_VERSION_1_0
             {
                 lwm2m_object_t *serverObjP;

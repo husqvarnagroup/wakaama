@@ -501,6 +501,12 @@ typedef uint8_t lwm2m_binding_t;
  *
  * Temporary data needed to handle block1 request and block2 responses.
  */
+typedef enum
+{
+    BLOCK_1,
+    BLOCK_2,
+} block_type_t;
+
 typedef union _block_data_identifier_
 {
     char * uri;                                    // resource string if block1 
@@ -513,6 +519,7 @@ typedef struct _lwm2m_block_data_ lwm2m_block_data_t;
 struct _lwm2m_block_data_
 {
     struct _lwm2m_block_data_ *     next;
+    block_type_t                    blockType;
     block_data_identifier_t         identifier;
     uint8_t *                       blockBuffer;       // data buffer
     size_t                          blockBufferSize;   // buffer size

@@ -52,49 +52,62 @@
 #define MAX_BLOCK_SIZE 4096
 #endif
 
-static
-lwm2m_block_data_t * find_block_data(lwm2m_block_data_t * blockDataHead,
-                                     block_data_identifier_t identifier,
-                                     bool (* match) (block_data_identifier_t, lwm2m_block_data_t *))
-{
-    lwm2m_block_data_t * blockData = blockDataHead;
     
-    while(blockData != NULL && !match(identifier, blockData))
+bool prv_matchBlock1 (block_data_identifier_t identifier, lwm2m_block_data_t * blockData)
     {
-        blockData = blockData->next;
-    }
-    
-    return blockData;
-}
-
-static
-bool matchBlock1 (block_data_identifier_t identifier, lwm2m_block_data_t * blockData)
-{
     if (blockData->identifier.uri == NULL || identifier.uri == NULL)
     {
         return false;
     }
     return strcmp(identifier.uri, blockData->identifier.uri) == 0;
 }
-
-static
-bool matchBlock2 (block_data_identifier_t identifier, lwm2m_block_data_t * blockData)
+    
+bool prv_matchBlock2 (block_data_identifier_t identifier, lwm2m_block_data_t * blockData)
 {
     return identifier.mid == blockData->identifier.mid;
 }
 
+bool (* prv_get_matcher(block_type_t blockType)) (block_data_identifier_t, lwm2m_block_data_t *) {
+    if (blockType == BLOCK_1)
+{
+        return &prv_matchBlock1;
+    }
+    else
+    {
+        return &prv_matchBlock2;
+    }
+}
+
+lwm2m_block_data_t * find_block_data(lwm2m_block_data_t * blockDataHead,
+                                     block_data_identifier_t identifier,
+                                     block_type_t blockType)
+{
+    bool (* match) (block_data_identifier_t, lwm2m_block_data_t *) = prv_get_matcher(blockType);
+    lwm2m_block_data_t * blockData = blockDataHead;
+    
+    while(blockData != NULL && !match(identifier, blockData))
+    {
+        blockData = blockData->next;
+}
+
+    return blockData;
+}
 
 /*
  * creates and inserts blockData entry
  * returns the newly created entry or NULL if creation fails
  */
 static
-lwm2m_block_data_t * prv_block_insert(lwm2m_block_data_t ** pBlockDataHead, block_data_identifier_t identifier)
+lwm2m_block_data_t * prv_block_insert(lwm2m_block_data_t ** pBlockDataHead, block_data_identifier_t identifier, block_type_t blockType)
 {
     lwm2m_block_data_t * blockData = lwm2m_malloc(sizeof(lwm2m_block_data_t));
     if (NULL == blockData) return NULL;
     blockData->next = *pBlockDataHead;
+    blockData->blockType = blockType;
     blockData->identifier = identifier;
+    if (blockType == BLOCK_1) {
+        blockData->identifier.uri = lwm2m_strdup(identifier.uri);
+    }
     *pBlockDataHead = blockData;
     return blockData;
 }
@@ -102,10 +115,10 @@ lwm2m_block_data_t * prv_block_insert(lwm2m_block_data_t ** pBlockDataHead, bloc
 static
 void prv_block_data_delete(lwm2m_block_data_t ** pBlockDataHead,
                                            block_data_identifier_t identifier,
-                                           bool (* match) (block_data_identifier_t, lwm2m_block_data_t *)
+                                           block_type_t blockType
                                            )
 {
-    lwm2m_block_data_t * removed = find_block_data(*pBlockDataHead, identifier, match);
+    lwm2m_block_data_t * removed = find_block_data(*pBlockDataHead, identifier, blockType);
     
     if (removed == NULL) {
         return;
@@ -131,7 +144,7 @@ void prv_block_data_delete(lwm2m_block_data_t ** pBlockDataHead,
 static
 uint8_t prv_coap_block_handler(lwm2m_block_data_t ** pBlockDataHead,
                                block_data_identifier_t identifier,
-                               bool (* match) (block_data_identifier_t, lwm2m_block_data_t *),
+                               block_type_t blockType,
                                uint8_t * buffer,
                                size_t length,
                                uint16_t blockSize,
@@ -140,21 +153,21 @@ uint8_t prv_coap_block_handler(lwm2m_block_data_t ** pBlockDataHead,
                                uint8_t ** outputBuffer,
                                size_t * outputLength)
 {
-    lwm2m_block_data_t * blockData = find_block_data(*pBlockDataHead, identifier, match);
+    lwm2m_block_data_t * blockData = find_block_data(*pBlockDataHead, identifier, blockType);
     
     // manage new block transfer
     if (blockNum == 0)
     {
-        if (blockData != NULL)
+        if (blockData == NULL)
+        {
+            blockData = prv_block_insert(pBlockDataHead, identifier, blockType);
+        }
+        else
         {
             // there is already existing block for this resource, clear buffer
             lwm2m_free(blockData->blockBuffer);
             blockData->blockBuffer = NULL;
             blockData->blockBufferSize = 0;
-        }
-        else
-        {
-            blockData = prv_block_insert(pBlockDataHead, identifier);
         }
 
         blockData->blockBuffer = lwm2m_malloc(length);
@@ -216,17 +229,17 @@ uint8_t prv_coap_block_handler(lwm2m_block_data_t ** pBlockDataHead,
         *outputLength = blockData->blockBufferSize;
         *outputBuffer = blockData->blockBuffer;
 
+        prv_block_data_delete(pBlockDataHead, identifier, blockType);
+
         return NO_ERROR;
     }
 }
-
-
 
 lwm2m_block_data_t * block1_create(lwm2m_block_data_t ** pBlockDataHead, char *uri)
 {
     block_data_identifier_t identifier;
     identifier.uri = uri;
-    return prv_block_insert(pBlockDataHead, identifier);
+    return prv_block_insert(pBlockDataHead, identifier, BLOCK_1);
 }
 
 void block1_delete(lwm2m_block_data_t ** pBlockDataHead,
@@ -235,11 +248,11 @@ void block1_delete(lwm2m_block_data_t ** pBlockDataHead,
     block_data_identifier_t identifier;
     identifier.uri = uri;
 
-    prv_block_data_delete(pBlockDataHead, identifier, &matchBlock1);
+    prv_block_data_delete(pBlockDataHead, identifier, BLOCK_1);
 }
 
 uint8_t coap_block1_handler (lwm2m_block_data_t ** pBlockDataHead,
-                            const char * uri,
+                            char * uri,
                             uint8_t * buffer,
                             size_t length,
                             uint16_t blockSize,
@@ -249,16 +262,14 @@ uint8_t coap_block1_handler (lwm2m_block_data_t ** pBlockDataHead,
                             size_t * outputLength)
 {
     block_data_identifier_t identifier;
-    identifier.uri = lwm2m_strdup(uri);
-
-    return prv_coap_block_handler(pBlockDataHead, identifier, &matchBlock1, buffer, length, blockSize, blockNum, blockMore, outputBuffer, outputLength);
+    identifier.uri = uri;
 }
 
 lwm2m_block_data_t * block2_create(lwm2m_block_data_t ** pBlockDataHead, uint16_t mid)
 {
     block_data_identifier_t identifier;
     identifier.mid = mid;
-    return prv_block_insert(pBlockDataHead, identifier);
+    return prv_block_insert(pBlockDataHead, identifier, BLOCK_2);
 }
 
 void block2_delete(lwm2m_block_data_t ** pBlockDataHead, uint16_t mid)
@@ -266,7 +277,7 @@ void block2_delete(lwm2m_block_data_t ** pBlockDataHead, uint16_t mid)
     block_data_identifier_t identifier;
     identifier.mid = mid;
 
-    prv_block_data_delete(pBlockDataHead, identifier, &matchBlock2);
+    prv_block_data_delete(pBlockDataHead, identifier, BLOCK_2);
 }
 
 void coap_block2_set_expected_mid(lwm2m_block_data_t * blockDataHead, uint16_t currentMid, uint16_t expectedMid)
@@ -274,7 +285,7 @@ void coap_block2_set_expected_mid(lwm2m_block_data_t * blockDataHead, uint16_t c
     block_data_identifier_t identifier;
     identifier.mid = currentMid;
     
-    lwm2m_block_data_t * blockData = find_block_data(blockDataHead, identifier, &matchBlock2);
+    lwm2m_block_data_t * blockData = find_block_data(blockDataHead, identifier, BLOCK_2);
     if(blockData == NULL)
     {
         return;
@@ -295,7 +306,7 @@ uint8_t coap_block2_handler(lwm2m_block_data_t ** pBlockDataHead,
     block_data_identifier_t identifier;
     identifier.mid = mid;
 
-    return prv_coap_block_handler(pBlockDataHead, identifier, &matchBlock2, buffer, length, blockSize, blockNum, blockMore, outputBuffer, outputLength);
+    return prv_coap_block_handler(pBlockDataHead, identifier, BLOCK_2, buffer, length, blockSize, blockNum, blockMore, outputBuffer, outputLength);
 }
 
 
@@ -304,6 +315,10 @@ void free_block_data(lwm2m_block_data_t * blockData)
     if (blockData != NULL)
     {
         lwm2m_free(blockData->blockBuffer);
+        if (blockData->blockType == BLOCK_1)
+        {
+            lwm2m_free(blockData->identifier.uri);
+        }
         lwm2m_free(blockData);
     }
 }

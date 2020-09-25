@@ -565,6 +565,7 @@ void lwm2m_handle_packet(lwm2m_context_t * contextP,
                     // handle block 1
                     coap_error_code = coap_block1_handler(&peerP->blockData, uri, message->payload, message->payload_len, block1_size, block1_num, block1_more, &complete_buffer, &complete_buffer_size);
 
+                    lwm2m_free(uri);
                     // if payload is complete, replace it in the coap message.
                     if (coap_error_code == NO_ERROR)
                     {

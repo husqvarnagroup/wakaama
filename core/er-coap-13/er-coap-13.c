@@ -415,6 +415,9 @@ char * coap_get_packet_uri_as_string(coap_packet_t * packet)
     
     output[len] = 0;
     
+    lwm2m_free(path_string);
+    lwm2m_free(query_string);
+    
     return output;
 }
 
