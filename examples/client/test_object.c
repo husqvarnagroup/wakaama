@@ -94,6 +94,11 @@ typedef struct _prv_instance_
     uint8_t  test;
     double   dec;
     char *   str;
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+    uint8_t * block_buffer;
+    size_t  value_offset;
+    size_t  value_len;
+#endif
 } prv_instance_t;
 
 static void prv_output_buffer(uint8_t * buffer,
@@ -253,11 +258,11 @@ static uint8_t prv_write(uint16_t instanceId,
             case 5:
                 if (dataArray[i].type == LWM2M_TYPE_STRING || dataArray[i].type == LWM2M_TYPE_OPAQUE)
                 {
-                tmp = targetP->str;
-                targetP->str = lwm2m_malloc(dataArray[i].value.asBuffer.length + 1);
-                strncpy(targetP->str, (char*)dataArray[i].value.asBuffer.buffer, dataArray[i].value.asBuffer.length);
-                lwm2m_free(tmp);
-                break;
+                    tmp = targetP->str;
+                    targetP->str = lwm2m_malloc(dataArray[i].value.asBuffer.length + 1);
+                    strncpy(targetP->str, (char*)dataArray[i].value.asBuffer.buffer, dataArray[i].value.asBuffer.length);
+                    lwm2m_free(tmp);
+                    break;
                 }
                 else
                 {
@@ -270,6 +275,110 @@ static uint8_t prv_write(uint16_t instanceId,
 
     return COAP_204_CHANGED;
 }
+
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+
+static void prv_block_buffer_free(prv_instance_t * targetP)
+{
+    if (targetP->block_buffer != NULL)
+    {
+        lwm2m_free(targetP->block_buffer);
+        targetP->block_buffer = NULL;
+        targetP->value_len = 0;
+        targetP->value_offset = 0;
+    }
+}
+
+static uint8_t prv_raw_block1_write(lwm2m_uri_t * uriP,
+                                lwm2m_media_type_t format,
+                                uint8_t * payload,
+                                int length,
+                                lwm2m_object_t * objectP,
+                                uint32_t block_num,
+                                uint8_t block_more)
+{
+    prv_instance_t * targetP;
+    
+    targetP = (prv_instance_t *)lwm2m_list_find(objectP->instanceList, uriP->instanceId);
+    if (NULL == targetP) return COAP_404_NOT_FOUND;
+    if (uriP->resourceId < 5) return COAP_400_BAD_REQUEST;
+    if (uriP->resourceId > 5) return COAP_404_NOT_FOUND;
+
+    // Only accept single attribute value
+    if (block_num == 0
+        && format == LWM2M_CONTENT_TLV
+        && length > 0 
+        && ((payload[0] & 0xC0) == 0xC0 || (payload[0] & 0xC0) == 0x40))
+    {
+        prv_block_buffer_free(targetP);
+
+        int offset = 2;
+        switch (payload[0] & 0x18)
+        {
+            case 0x00:
+                // no length field
+                targetP->value_len = payload[0] & 0x07;
+                break;
+            case 0x08:
+                // length field is 8 bits long
+                targetP->value_len = payload[offset];
+                offset += 1;
+                break;
+            case 0x10:
+                // length field is 16 bits long
+                targetP->value_len = (payload[offset]<<8) + payload[offset+1];
+                offset += 2;
+                break;
+            case 0x18:
+                // length field is 24 bits long
+                targetP->value_len = (payload[offset]<<16) + (payload[offset+1]<<8) + payload[offset+2];
+                offset += 3;
+                break;
+        }
+        targetP->value_offset = offset;
+        targetP->block_buffer = lwm2m_malloc(targetP->value_offset + targetP->value_offset);
+    }
+    else if (length > 0 && (format == LWM2M_CONTENT_OPAQUE || format == LWM2M_CONTENT_TEXT))
+    {
+        size_t len = targetP->value_len + length;
+        uint8_t * tmp = (uint8_t *)lwm2m_malloc(len);
+        if (targetP->block_buffer != NULL)
+        {
+            memcpy(tmp, targetP->block_buffer, targetP->value_len);
+            prv_block_buffer_free(targetP);
+        }
+        targetP->block_buffer = tmp;
+        targetP->value_len = len;
+    }
+    else
+    {
+        return COAP_400_BAD_REQUEST;
+    } 
+
+    if ((block_num + 1) * length > targetP->value_offset + targetP->value_len)
+    {
+        prv_block_buffer_free(targetP);
+        return COAP_400_BAD_REQUEST;
+    }
+    else
+    {
+        memcpy(targetP->block_buffer + (block_num * length), payload, length);
+    }
+
+    if (block_more == 0){
+        char * old_str = targetP->str;
+        targetP->str = lwm2m_malloc(targetP->value_len + 1);
+        strncpy(targetP->str, (char*) targetP->block_buffer + targetP->value_offset, targetP->value_len);
+        targetP->str[targetP->value_len] = 0;
+        lwm2m_free(old_str);
+        prv_block_buffer_free(targetP);
+        return COAP_204_CHANGED;
+    } else {
+        return COAP_231_CONTINUE;
+    }
+
+}
+#endif
 
 static uint8_t prv_delete(uint16_t id,
                           lwm2m_object_t * objectP)
@@ -387,6 +496,11 @@ lwm2m_object_t * get_test_object(void)
                 strcat(str, "I");
             }
             targetP->str     = str;
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+            targetP->block_buffer = NULL;
+            targetP->value_len = 0;
+            targetP->value_offset = 0;
+#endif
             testObj->instanceList = LWM2M_LIST_ADD(testObj->instanceList, targetP);
         }
         /*
@@ -402,6 +516,10 @@ lwm2m_object_t * get_test_object(void)
         testObj->executeFunc = prv_exec;
         testObj->createFunc = prv_create;
         testObj->deleteFunc = prv_delete;
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+        testObj->rawBlock1WriteFunc = prv_raw_block1_write;
+#endif
+
     }
 
     return testObj;
@@ -416,6 +534,9 @@ void free_test_object(lwm2m_object_t * object)
         if (targetP != NULL)
         {
             lwm2m_free(targetP->str);
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+            prv_block_buffer_free(targetP);
+#endif
         }
         targetP = next;
     }

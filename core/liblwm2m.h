@@ -432,6 +432,11 @@ typedef uint8_t (*lwm2m_discover_callback_t) (uint16_t instanceId, int * numData
 typedef uint8_t (*lwm2m_write_callback_t) (uint16_t instanceId, int numData, lwm2m_data_t * dataArray, lwm2m_object_t * objectP);
 typedef uint8_t (*lwm2m_execute_callback_t) (uint16_t instanceId, uint16_t resourceId, uint8_t * buffer, int length, lwm2m_object_t * objectP);
 typedef uint8_t (*lwm2m_create_callback_t) (uint16_t instanceId, int numData, lwm2m_data_t * dataArray, lwm2m_object_t * objectP);
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+typedef uint8_t (*lwm2m_raw_block1_create_callback_t) (lwm2m_uri_t * uriP, lwm2m_media_type_t format, uint8_t * buffer, int length, lwm2m_object_t * objectP, uint32_t block_num, uint8_t block_more);
+typedef uint8_t (*lwm2m_raw_block1_write_callback_t) (lwm2m_uri_t * uriP, lwm2m_media_type_t format, uint8_t * buffer, int length, lwm2m_object_t * objectP, uint32_t block_num, uint8_t block_more);
+typedef uint8_t (*lwm2m_raw_block1_execute_callback_t) (lwm2m_uri_t * uriP, uint8_t * buffer, int length, lwm2m_object_t * objectP, uint32_t block_num, uint8_t block_more);
+#endif
 typedef uint8_t (*lwm2m_delete_callback_t) (uint16_t instanceId, lwm2m_object_t * objectP);
 
 struct _lwm2m_object_t
@@ -443,6 +448,11 @@ struct _lwm2m_object_t
     lwm2m_write_callback_t    writeFunc;
     lwm2m_execute_callback_t  executeFunc;
     lwm2m_create_callback_t   createFunc;
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+    lwm2m_raw_block1_create_callback_t   rawBlock1CreateFunc;
+    lwm2m_raw_block1_write_callback_t    rawBlock1WriteFunc;
+    lwm2m_raw_block1_execute_callback_t  rawBlock1ExecuteFunc;
+#endif
     lwm2m_delete_callback_t   deleteFunc;
     lwm2m_discover_callback_t discoverFunc;
     void * userData;
@@ -509,7 +519,7 @@ typedef enum
 
 typedef union _block_data_identifier_
 {
-    char * uri;                                    // resource string if block1 
+    char * uri;                               // resource string if block1 
     int32_t mid;                                    // mid of the last request if block2 eg the mid for the expected block
 } block_data_identifier_t;
 
@@ -521,9 +531,12 @@ struct _lwm2m_block_data_
     struct _lwm2m_block_data_ *     next;
     block_type_t                    blockType;
     block_data_identifier_t         identifier;
-    uint8_t *                       blockBuffer;       // data buffer
-    size_t                          blockBufferSize;   // buffer size
-    uint32_t                        blockNum;         // block num of the last message received
+    uint8_t *                       blockBuffer;        // data buffer
+    size_t                          blockBufferSize;    // buffer size
+    uint32_t                        blockNum;           // block num of the last message received
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+    uint16_t                        mid;                // mid of the last message received
+#endif
 };
 
 

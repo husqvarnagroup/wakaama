@@ -269,6 +269,24 @@ uint8_t dm_handleRequest(lwm2m_context_t * contextP,
 
     case COAP_POST:
         {
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+            if (IS_OPTION(message, COAP_OPTION_BLOCK1))
+            {
+                if (!LWM2M_URI_IS_SET_INSTANCE(uriP))
+                {
+                    result = object_raw_block1_create(contextP, uriP, format, message->payload, message->payload_len, message->block1_num, message->block1_more);
+                }
+                else if (!LWM2M_URI_IS_SET_RESOURCE(uriP))
+                {
+                    result = object_raw_block1_write(contextP, uriP, format, message->payload, message->payload_len, message->block1_num, message->block1_more);
+                }
+                else
+                {
+                    result = object_raw_block1_execute(contextP, uriP, message->payload, message->payload_len, message->block1_num, message->block1_more);
+                }
+                break;
+            }
+#endif
             if (!LWM2M_URI_IS_SET_INSTANCE(uriP))
             {
                 result = object_create(contextP, uriP, format, message->payload, message->payload_len);
@@ -306,6 +324,13 @@ uint8_t dm_handleRequest(lwm2m_context_t * contextP,
 
     case COAP_PUT:
         {
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+            if (IS_OPTION(message, COAP_OPTION_BLOCK1))
+            {
+                result = object_raw_block1_write(contextP, uriP, format, message->payload, message->payload_len, message->block1_num, message->block1_more);
+                break;
+            }
+#endif
             if (IS_OPTION(message, COAP_OPTION_URI_QUERY))
             {
                 lwm2m_attributes_t attr;
