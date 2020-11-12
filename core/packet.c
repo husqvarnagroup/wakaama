@@ -209,50 +209,7 @@ static lwm2m_transaction_t * prv_get_transaction(lwm2m_context_t * contextP, voi
     return transaction;
 }
 
-static int
-clone_path_segment(void *packet, uint8_t *segment, size_t len)
-{
-  coap_packet_t *coap_pkt = (coap_packet_t *) packet;
-  int length;
-
-  if (segment == NULL || segment[0] == 0)
-  {
-      coap_add_multi_option(&(coap_pkt->uri_path), NULL, 0, 1);
-      length = 0;
-  }
-  else
-  {
-      coap_add_multi_option(&(coap_pkt->uri_path), segment, len, 0);
-      length = len;
-  }
-
-  SET_OPTION(coap_pkt, COAP_OPTION_URI_PATH);
-  return length;
-}
-
-static int
-clone_query_segment(void *packet, uint8_t *segment, size_t len)
-{
-  coap_packet_t *coap_pkt = (coap_packet_t *) packet;
-  int length;
-
-  if (segment == NULL || segment[0] == 0)
-  {
-      coap_add_multi_option(&(coap_pkt->uri_query), NULL, 0, 1);
-      length = 0;
-  }
-  else
-  {
-      coap_add_multi_option(&(coap_pkt->uri_query), segment, len, 0);
-      length = len;
-  }
-
-  SET_OPTION(coap_pkt, COAP_OPTION_URI_QUERY);
-  return length;
-}
-
-
-// limited clone of transaction to ne used by block transfers
+// limited clone of transaction to be used by block transfers
 static lwm2m_transaction_t * prv_create_next_block_transaction(lwm2m_transaction_t * transaction, uint16_t nextMID){
     static coap_packet_t message[1];
     if (0 != coap_parse_message(message, transaction->buffer, transaction->buffer_len)){
@@ -290,12 +247,12 @@ static lwm2m_transaction_t * prv_create_next_block_transaction(lwm2m_transaction
         coap_set_header_uri_port(clone->message, message->uri_port);
     }
 
-    multi_option_t * locationPathSegment = message->location_path;
-    while (locationPathSegment != NULL) {
-        clone_path_segment(clone->message, locationPathSegment->data, locationPathSegment->len);
-        locationPathSegment = locationPathSegment->next;
+    if(IS_OPTION(message, COAP_OPTION_LOCATION_PATH))
+    {
+        ((coap_packet_t *)clone->message)->location_path = message->location_path;
+        SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_LOCATION_PATH);
     }
-
+    
     if (message->location_query != NULL)
     {
         char  str[message->location_query_len + 1];
@@ -304,10 +261,16 @@ static lwm2m_transaction_t * prv_create_next_block_transaction(lwm2m_transaction
         coap_set_header_location_query(clone->message, str);
     }
 
-    multi_option_t * pathSegment = message->uri_path;
-    while (pathSegment != NULL) {
-        clone_path_segment(clone->message, pathSegment->data, pathSegment->len);
-        pathSegment = pathSegment->next;
+    if(IS_OPTION(message, COAP_OPTION_CONTENT_TYPE))
+    {
+        ((coap_packet_t *)clone->message)->content_type = message->content_type;
+        SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_CONTENT_TYPE);
+    }
+  
+    if(IS_OPTION(message, COAP_OPTION_URI_PATH))
+    {
+        ((coap_packet_t *)clone->message)->uri_path = message->uri_path;
+        SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_URI_PATH);
     }
 
     if (IS_OPTION(message, COAP_OPTION_OBSERVE))
@@ -324,10 +287,10 @@ static lwm2m_transaction_t * prv_create_next_block_transaction(lwm2m_transaction
         coap_set_header_if_match(clone->message, message->if_match, message->if_match_len);
     }
 
-    multi_option_t * querySegment = message->uri_query;
-    while (querySegment != NULL) {
-        clone_query_segment(clone->message, querySegment->data, querySegment->len);
-        querySegment = querySegment->next;
+    if(IS_OPTION(message, COAP_OPTION_URI_QUERY))
+    {
+        ((coap_packet_t *)clone->message)->uri_query = message->uri_query;
+        SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_URI_QUERY);
     }
 
     if (IS_OPTION(message, COAP_OPTION_IF_NONE_MATCH))

@@ -312,7 +312,16 @@ static uint8_t prv_raw_block1_write(lwm2m_uri_t * uriP,
     {
         prv_block_buffer_free(targetP);
 
-        int offset = 2;
+        int offset; // length of id field  
+        
+        if (payload[0] & 0x20 == 0x20)
+        {
+            offset = 2;
+        }
+        else
+        {
+            offset = 1;
+        }
         switch (payload[0] & 0x18)
         {
             case 0x00:
@@ -388,6 +397,12 @@ static uint8_t prv_delete(uint16_t id,
     objectP->instanceList = lwm2m_list_remove(objectP->instanceList, id, (lwm2m_list_t **)&targetP);
     if (NULL == targetP) return COAP_404_NOT_FOUND;
 
+#ifdef LWM2M_RAW_BLOCK1_REQUESTS
+    lwm2m_free(targetP->block_buffer);
+    targetP->block_buffer = NULL;
+#endif
+    lwm2m_free(targetP->str);
+    targetP->str = NULL;
     lwm2m_free(targetP);
 
     return COAP_202_DELETED;

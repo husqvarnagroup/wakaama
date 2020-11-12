@@ -170,7 +170,7 @@ uint8_t prv_coap_raw_block_handler(lwm2m_block_data_t ** pBlockDataHead,
     // manage already started block1 transfer
     else
     {
-        if (blockData == NULL || blockNum - blockData->blockNum > 1)
+        if (blockData == NULL)
         {
             // we never receive the first block or block is out of order
             return COAP_408_REQ_ENTITY_INCOMPLETE;
@@ -242,11 +242,14 @@ uint8_t prv_coap_block_handler(lwm2m_block_data_t ** pBlockDataHead,
     // manage already started block1 transfer
     else
     {
-        if (blockData == NULL || blockNum < blockData->blockNum || blockNum - blockData->blockNum > 1)
+        if (blockData == NULL)
         {
-           // we never receive the first block
-           // TODO should we clean block1 data for this server ?
            return COAP_408_REQ_ENTITY_INCOMPLETE;
+        }
+
+        if (blockNum <= blockData->blockNum){
+            // this is a retransmissiion, ignore
+            return COAP_IGNORE;
         }
 
         // If this is a retransmission, we already did that.
@@ -290,8 +293,6 @@ uint8_t prv_coap_block_handler(lwm2m_block_data_t ** pBlockDataHead,
         // we don't free it to be able to send retransmission
         *outputLength = blockData->blockBufferSize;
         *outputBuffer = blockData->blockBuffer;
-
-        prv_block_data_delete(pBlockDataHead, identifier, blockType);
 
         return NO_ERROR;
     }

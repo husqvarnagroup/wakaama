@@ -416,19 +416,24 @@ int transaction_send(lwm2m_context_t * contextP,
             maxRetriesReached = true;
         }
     }
-
-    if (transacP->ack_received || maxRetriesReached)
+    else
     {
-        if (transacP->callback)
-        {
-            LOG_ARG("transaction %p expired..calling callback", transacP);
-            transacP->callback(contextP, transacP, NULL);
-        }
-        transaction_remove(contextP, transacP);
-        return -1;
+        goto error;
+    }
+    if (maxRetriesReached)
+    {
+        goto error;
     }
 
     return 0;
+error:
+    if (transacP->callback)
+    {
+        LOG_ARG("transaction %p expired..calling callback", transacP);
+        transacP->callback(contextP, transacP, NULL);
+    }
+    transaction_remove(contextP, transacP);
+    return -1;
 }
 
 void transaction_step(lwm2m_context_t * contextP,
@@ -497,5 +502,6 @@ bool transaction_free_userData(lwm2m_context_t * context, lwm2m_transaction_t * 
         target = target->next;
     }
     lwm2m_free(transaction->userData);
+    transaction->userData = NULL;
     return true;
 }
