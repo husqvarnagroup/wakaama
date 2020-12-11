@@ -316,7 +316,7 @@ void block1_delete(lwm2m_block_data_t ** pBlockDataHead,
 
 uint8_t coap_block1_handler (lwm2m_block_data_t ** pBlockDataHead,
  
-                            char * uri,
+                            const char * uri,
 #ifdef LWM2M_RAW_BLOCK1_REQUESTS
                             uint16_t mid,
 #endif
@@ -329,7 +329,7 @@ uint8_t coap_block1_handler (lwm2m_block_data_t ** pBlockDataHead,
                             size_t * outputLength)
 {
     block_data_identifier_t identifier;
-    identifier.uri = uri;
+    identifier.uri = (char *) uri;
 #ifdef LWM2M_RAW_BLOCK1_REQUESTS
     return prv_coap_raw_block_handler(pBlockDataHead, identifier, mid, BLOCK_1, buffer, length, blockSize, blockNum, blockMore);
 #else
