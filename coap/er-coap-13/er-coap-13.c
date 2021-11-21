@@ -703,6 +703,11 @@ coap_parse_message(void *packet, uint8_t *data, uint16_t data_len)
   uint32_t option_delta = 0;
   uint32_t option_length = 0;
   uint32_t *x;
+  int i;
+
+  if(data_len < COAP_HEADER_LEN) {
+    goto exit_parse_error;
+  }
 
   /* Initialize packet */
   memset(coap_pkt, 0, sizeof(coap_packet_t));
@@ -725,21 +730,20 @@ coap_parse_message(void *packet, uint8_t *data, uint16_t data_len)
 
   current_option = data + COAP_HEADER_LEN;
 
+  if (current_option + coap_pkt->token_len > data + data_len) {
+    goto exit_parse_error;
+  }
+
   if (coap_pkt->token_len != 0)
   {
       memcpy(coap_pkt->token, current_option, coap_pkt->token_len);
       SET_OPTION(coap_pkt, COAP_OPTION_TOKEN);
 
-      PRINTF("Token (len %u) [0x%02X%02X%02X%02X%02X%02X%02X%02X]\n", coap_pkt->token_len,
-        coap_pkt->token[0],
-        coap_pkt->token[1],
-        coap_pkt->token[2],
-        coap_pkt->token[3],
-        coap_pkt->token[4],
-        coap_pkt->token[5],
-        coap_pkt->token[6],
-        coap_pkt->token[7]
-      ); /*FIXME always prints 8 bytes */
+      PRINTF("Token (len %u) [0x%02X", coap_pkt->token_len, coap_pkt->token[0]);
+      for (i = 1; i < coap_pkt->token_len; i++) {
+          PRINTF("%02X", coap_pkt->token[i]);
+      }
+      PRINTF("]\n");
   }
 
   /* parse options */
@@ -929,6 +933,10 @@ coap_parse_message(void *packet, uint8_t *data, uint16_t data_len)
 
 
   return NO_ERROR;
+
+exit_parse_error:
+  coap_error_message = "Invalid COAP message";
+  return BAD_REQUEST_4_00;
 }
 /*-----------------------------------------------------------------------------------*/
 /*- REST FRAMEWORK FUNCTIONS --------------------------------------------------------*/
