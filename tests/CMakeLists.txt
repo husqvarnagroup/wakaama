@@ -40,3 +40,5 @@ endif()
 
 # Add our unit tests to it "test" target
 add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME})
+
+add_subdirectory(fuzzing)
