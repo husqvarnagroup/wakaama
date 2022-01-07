@@ -695,7 +695,7 @@ coap_serialize_message(void *packet, uint8_t *buffer)
 }
 /*-----------------------------------------------------------------------------------*/
 coap_status_t
-coap_parse_message(void *packet, uint8_t *data, uint16_t data_len)
+coap_parse_message(coap_packet_t *packet, uint8_t *data, uint16_t data_len)
 {
   coap_packet_t *const coap_pkt = (coap_packet_t *) packet;
   uint8_t *current_option;

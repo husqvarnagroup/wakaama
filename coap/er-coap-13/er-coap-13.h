@@ -309,7 +309,7 @@ uint16_t coap_get_mid(void);
 void coap_init_message(void *packet, coap_message_type_t type, uint8_t code, uint16_t mid);
 size_t coap_serialize_get_size(void *packet);
 size_t coap_serialize_message(void *packet, uint8_t *buffer);
-coap_status_t coap_parse_message(void *request, uint8_t *data, uint16_t data_len);
+coap_status_t coap_parse_message(coap_packet_t *request, uint8_t *data, uint16_t data_len);
 void coap_free_header(void *packet);
 
 char * coap_get_multi_option_as_path_string(multi_option_t * option);
