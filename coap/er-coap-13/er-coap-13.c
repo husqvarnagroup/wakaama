@@ -86,7 +86,7 @@ coap_log_2(uint16_t value)
 /*-----------------------------------------------------------------------------------*/
 static
 uint32_t
-coap_parse_int_option(uint8_t *bytes, size_t length)
+coap_parse_int_option(const uint8_t *bytes, size_t length)
 {
   uint32_t var = 0;
   size_t i = 0;
@@ -255,7 +255,7 @@ coap_merge_multi_option(uint8_t **dst, size_t *dst_len, uint8_t *option, size_t 
 }
 
 void
-coap_add_multi_option(multi_option_t **dst, uint8_t *option, size_t option_len, uint8_t is_static)
+coap_add_multi_option(multi_option_t **dst, uint8_t *option, const size_t option_len, const uint8_t is_static)
 {
   multi_option_t *opt = (multi_option_t *)lwm2m_malloc(sizeof(multi_option_t));
 
@@ -695,7 +695,7 @@ coap_serialize_message(void *packet, uint8_t *buffer)
 }
 /*-----------------------------------------------------------------------------------*/
 coap_status_t
-coap_parse_message(coap_packet_t *packet, uint8_t *data, uint16_t data_len)
+coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len)
 {
   coap_packet_t *const coap_pkt = (coap_packet_t *) packet;
   uint8_t *current_option;
