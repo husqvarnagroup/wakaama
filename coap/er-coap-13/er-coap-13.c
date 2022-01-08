@@ -728,6 +728,16 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
     return BAD_REQUEST_4_00;
   }
 
+  /*
+   * An Empty message has the Code field set to 0.00. The Token Length field
+   * MUST be set to 0 and bytes of data MUST NOT be present after the Message ID
+   * field. If there are any bytes, they MUST be processed as a message format
+   * error.
+   */
+  if (coap_pkt->code == COAP_EMPTY_MESSAGE_CODE && ((coap_pkt->token_len != 0) || data_len > COAP_HEADER_LEN)) {
+    goto exit_parse_error_free_options;
+  }
+
   current_option = data + COAP_HEADER_LEN;
 
   if (current_option + coap_pkt->token_len > data + data_len) {
