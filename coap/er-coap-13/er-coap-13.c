@@ -698,6 +698,7 @@ coap_status_t
 coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len)
 {
   coap_packet_t *const coap_pkt = (coap_packet_t *) packet;
+  const uint8_t * const data_end = data + data_len;
   uint8_t *current_option;
   uint32_t option_number = 0;
   uint32_t option_delta = 0;
@@ -748,7 +749,7 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
 
   current_option = data + COAP_HEADER_LEN;
 
-  if (current_option + coap_pkt->token_len > data + data_len) {
+  if (current_option + coap_pkt->token_len > data_end) {
     goto exit_parse_error;
   }
 
@@ -767,7 +768,7 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
   /* parse options */
   current_option += coap_pkt->token_len;
 
-  while (current_option < data+data_len)
+  while (current_option < data_end)
   {
     if (current_option[0] == 0xFF)
     {
@@ -775,11 +776,11 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
        * The presence of a marker followed by a zero-length payload MUST be
        * processed as a message format error.
        */
-      if (current_option + 1 == data + data_len) {
+      if (current_option + 1 == data_end) {
         goto exit_parse_error_free_options;
       }
       coap_pkt->payload = ++current_option;
-      coap_pkt->payload_len = data_len - (coap_pkt->payload - data);
+      coap_pkt->payload_len = data_end - coap_pkt->payload;
 
       break;
     }
@@ -816,7 +817,7 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
 
     option_number += option_delta;
 
-    if (current_option + option_length > data + data_len)
+    if (current_option + option_length > data_end)
     {
         PRINTF("OPTION %u (delta %u, len %u) has invalid length.\n", option_number, option_delta, option_length);
         goto exit_parse_error_free_options;
