@@ -718,7 +718,7 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
   /* parse header fields */
   coap_pkt->version = (COAP_HEADER_VERSION_MASK & coap_pkt->buffer[0])>>COAP_HEADER_VERSION_POSITION;
   coap_pkt->type = (coap_message_type_t) ((COAP_HEADER_TYPE_MASK & coap_pkt->buffer[0])>>COAP_HEADER_TYPE_POSITION);
-  coap_pkt->token_len = MIN(COAP_TOKEN_LEN, (COAP_HEADER_TOKEN_LEN_MASK & coap_pkt->buffer[0])>>COAP_HEADER_TOKEN_LEN_POSITION);
+  coap_pkt->token_len = (COAP_HEADER_TOKEN_LEN_MASK & coap_pkt->buffer[0])>>COAP_HEADER_TOKEN_LEN_POSITION;
   coap_pkt->code = coap_pkt->buffer[1];
   coap_pkt->mid = coap_pkt->buffer[2]<<8 | coap_pkt->buffer[3];
 
@@ -736,6 +736,14 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
    */
   if (coap_pkt->code == COAP_EMPTY_MESSAGE_CODE && ((coap_pkt->token_len != 0) || data_len > COAP_HEADER_LEN)) {
     goto exit_parse_error_free_options;
+  }
+
+  /*
+   * Lengths 9-15 are reserved, MUST NOT be sent, and MUST be processed as a
+   * message format error.
+   */
+  if (coap_pkt->token_len > COAP_TOKEN_LEN) {
+    goto exit_parse_error;
   }
 
   current_option = data + COAP_HEADER_LEN;
