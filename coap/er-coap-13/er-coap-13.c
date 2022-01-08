@@ -793,7 +793,9 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
       goto exit_parse_error_free_options;
     }
 
-    ++current_option;
+    if (++current_option == data_end) {
+      goto exit_parse_error_free_options;
+    }
 
     /* avoids code duplication without function overhead */
     x = &option_delta;
@@ -802,15 +804,21 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
       if (*x==13)
       {
         *x += current_option[0];
-        ++current_option;
+        if (++current_option == data_end) {
+          goto exit_parse_error_free_options;
+        }
       }
       else if (*x==14)
       {
         *x += 255;
         *x += current_option[0]<<8;
-        ++current_option;
+        if (++current_option == data_end) {
+          goto exit_parse_error_free_options;
+        }
         *x += current_option[0];
-        ++current_option;
+        if (++current_option == data_end) {
+          goto exit_parse_error_free_options;
+        }
       }
     }
     while (x != &option_length && (x = &option_length));
