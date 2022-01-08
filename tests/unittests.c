@@ -56,25 +56,25 @@ int main()
    if (CUE_SUCCESS != CU_initialize_registry())
       return CU_get_error();
 
-//   if (CUE_SUCCESS != create_block1_suit())
-//      goto exit;
+   if (CUE_SUCCESS != create_block1_suit())
+      goto exit;
 
-//   if (CUE_SUCCESS != create_convert_numbers_suit())
-//      goto exit;
+   if (CUE_SUCCESS != create_convert_numbers_suit())
+      goto exit;
 
-//   if (CUE_SUCCESS != create_tlv_json_suit())
-//      goto exit;
+   if (CUE_SUCCESS != create_tlv_json_suit())
+      goto exit;
 
-//   if (CUE_SUCCESS != create_tlv_suit())
-//      goto exit;
+   if (CUE_SUCCESS != create_tlv_suit())
+      goto exit;
 
-//   if (CUE_SUCCESS != create_uri_suit())
-//      goto exit;
+   if (CUE_SUCCESS != create_uri_suit())
+      goto exit;
 
-//#ifdef LWM2M_SUPPORT_SENML_JSON
-//   if (CUE_SUCCESS != create_senml_json_suit())
-//       goto exit;
-//#endif
+#ifdef LWM2M_SUPPORT_SENML_JSON
+   if (CUE_SUCCESS != create_senml_json_suit())
+       goto exit;
+#endif
 
    if (CUE_SUCCESS != create_er_coap_parse_message_suit())
       goto exit;
