@@ -754,6 +754,13 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
     /* Payload marker 0xFF, currently only checking for 0xF* because rest is reserved */
     if ((current_option[0] & 0xF0)==0xF0)
     {
+      /*
+       * The presence of a marker followed by a zero-length payload MUST be
+       * processed as a message format error.
+       */
+      if (current_option + 1 == data + data_len) {
+        goto exit_parse_error_free_options;
+      }
       coap_pkt->payload = ++current_option;
       coap_pkt->payload_len = data_len - (coap_pkt->payload - data);
 
@@ -789,8 +796,7 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
     if (current_option + option_length > data + data_len)
     {
         PRINTF("OPTION %u (delta %u, len %u) has invalid length.\n", option_number, option_delta, option_length);
-        coap_free_header(coap_pkt);
-        return BAD_REQUEST_4_00;
+        goto exit_parse_error_free_options;
     }
     else
     {
@@ -933,6 +939,9 @@ coap_parse_message(coap_packet_t *packet, uint8_t *data, const uint16_t data_len
 
 
   return NO_ERROR;
+
+exit_parse_error_free_options:
+  coap_free_header(coap_pkt);
 
 exit_parse_error:
   coap_error_message = "Invalid COAP message";
