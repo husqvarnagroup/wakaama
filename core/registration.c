@@ -803,7 +803,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
     dataP->payload = payload;
     dataP->query = query;
     dataP->server = server;
-    
+
     transaction->callback = prv_handleRegistrationReply;
     transaction->userData = (void *) dataP;
 
@@ -926,7 +926,7 @@ static int prv_updateRegistration(lwm2m_context_t * contextP,
     if (transaction_send(contextP, transaction) == 0) {
         server->status = STATE_REG_UPDATE_PENDING;
     }
-    
+
     return COAP_NO_ERROR;
 }
 
@@ -2009,23 +2009,26 @@ uint8_t  registration_handleRequest(lwm2m_context_t * contextP,
     }
     break;
 
-    case COAP_DELETE:
-    {
-        lwm2m_client_t * clientP;
+    case COAP_DELETE: {
+        lwm2m_client_t *clientP;
 
-        if (!LWM2M_URI_IS_SET_OBJECT(uriP)) return COAP_400_BAD_REQUEST;
-        if (LWM2M_URI_IS_SET_INSTANCE(uriP)) return COAP_400_BAD_REQUEST;
+        if (!LWM2M_URI_IS_SET_OBJECT(uriP))
+            return COAP_400_BAD_REQUEST;
+        if (LWM2M_URI_IS_SET_INSTANCE(uriP))
+            return COAP_400_BAD_REQUEST;
 
-        contextP->clientList = (lwm2m_client_t *)LWM2M_LIST_RM(contextP->clientList, uriP->objectId, &clientP);
-        if (clientP == NULL) return COAP_400_BAD_REQUEST;
-        if (contextP->monitorCallback != NULL)
-        {
-            contextP->monitorCallback(contextP, clientP->internalID, NULL, COAP_202_DELETED, NULL, LWM2M_CONTENT_TEXT, NULL, 0, contextP->monitorUserData);
+        clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(contextP->clientList, uriP->objectId);
+
+        if (clientP == NULL)
+            return COAP_400_BAD_REQUEST;
+        if (contextP->monitorCallback != NULL) {
+            contextP->monitorCallback(contextP, clientP->internalID, NULL, COAP_202_DELETED, NULL, LWM2M_CONTENT_TEXT,
+                                      NULL, 0, contextP->monitorUserData);
         }
+        contextP->clientList = (lwm2m_client_t *)LWM2M_LIST_RM(contextP->clientList, clientP->internalID, NULL);
         registration_freeClient(clientP);
         result = COAP_202_DELETED;
-    }
-    break;
+    } break;
 
     default:
         return COAP_400_BAD_REQUEST;
@@ -2126,38 +2129,31 @@ void registration_step(lwm2m_context_t * contextP,
 
 #endif
 #ifdef LWM2M_SERVER_MODE
-    lwm2m_client_t * clientP;
+    lwm2m_client_t *clientP;
 
     LOG("Entering");
     // monitor clients lifetime
     clientP = contextP->clientList;
-    while (clientP != NULL)
-    {
-        lwm2m_client_t * nextP = clientP->next;
+    while (clientP != NULL) {
+        lwm2m_client_t *nextP = clientP->next;
 
-        if (clientP->endOfLife <= currentTime)
-        {
-            contextP->clientList = (lwm2m_client_t *)LWM2M_LIST_RM(contextP->clientList, clientP->internalID, NULL);
-            if (contextP->monitorCallback != NULL)
-            {
-                contextP->monitorCallback(contextP, clientP->internalID, NULL, COAP_202_DELETED, NULL, LWM2M_CONTENT_TEXT, NULL, 0, contextP->monitorUserData);
+        if (clientP->endOfLife <= currentTime) {
+            if (contextP->monitorCallback != NULL) {
+                contextP->monitorCallback(contextP, clientP->internalID, NULL, COAP_202_DELETED, NULL,
+                                          LWM2M_CONTENT_TEXT, NULL, 0, contextP->monitorUserData);
             }
+            contextP->clientList = (lwm2m_client_t *)LWM2M_LIST_RM(contextP->clientList, clientP->internalID, NULL);
             registration_freeClient(clientP);
-        }
-        else
-        {
+        } else {
             time_t interval;
 
             interval = clientP->endOfLife - currentTime;
 
-            if (*timeoutP > interval)
-            {
+            if (*timeoutP > interval) {
                 *timeoutP = interval;
             }
         }
         clientP = nextP;
     }
 #endif
-
 }
-
