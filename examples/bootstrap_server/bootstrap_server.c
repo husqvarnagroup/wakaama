@@ -740,15 +740,7 @@ int main(int argc, char *argv[])
 
                     output_buffer(stderr, buffer, (size_t)numBytes, 0);
 
-                    connP = connection_find(data.connList, &addr, addrLen);
-                    if (connP == NULL)
-                    {
-                        connP = connection_new_incoming(data.connList, data.sock, (struct sockaddr *)&addr, addrLen);
-                        if (connP != NULL)
-                        {
-                            data.connList = connP;
-                        }
-                    }
+                    connP = connection_get(data.sock, &addr, addrLen);
                     if (connP != NULL)
                     {
                         lwm2m_handle_packet(lwm2mH, buffer, (size_t)numBytes, connP);
@@ -825,7 +817,7 @@ int main(int argc, char *argv[])
         prv_endpoint_free(endP);
     }
     close(data.sock);
-    connection_free(data.connList);
+    connection_free();
 
     return 0;
 }

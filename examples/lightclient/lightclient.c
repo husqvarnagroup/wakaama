@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
                 {
                     connection_t * connP;
 
-                    connP = connection_find(data.connList, &addr, addrLen);
+                    connP = connection_find(&addr, addrLen);
                     if (connP != NULL)
                     {
                         /*
@@ -564,7 +564,7 @@ int main(int argc, char *argv[])
      */
     lwm2m_close(lwm2mH);
     close(data.sock);
-    connection_free(data.connList);
+    connection_free();
 
     free_security_object(objArray[0]);
     free_server_object(objArray[1]);
