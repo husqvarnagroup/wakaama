@@ -528,3 +528,22 @@ bool transaction_free_userData(lwm2m_context_t * context, lwm2m_transaction_t * 
     transaction->userData = NULL;
     return true;
 }
+
+/*
+ * Remove transactions from a specific client.
+ */
+void transaction_remove_client(lwm2m_context_t *contextP, lwm2m_client_t *clientP) {
+    lwm2m_transaction_t *transacP;
+
+    LOG("Entering");
+    transacP = contextP->transactionList;
+    while (transacP != NULL) {
+        lwm2m_transaction_t *nextP = transacP->next;
+
+        if (lwm2m_session_is_equal(transacP->peerH, clientP->sessionH, contextP->userData)) {
+            LOG("Found session to remove");
+            transaction_remove(contextP, transacP);
+        }
+        transacP = nextP;
+    }
+}

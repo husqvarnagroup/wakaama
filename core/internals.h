@@ -442,7 +442,7 @@ bool transaction_handleResponse(lwm2m_context_t * contextP, void * fromSessionH,
 void transaction_step(lwm2m_context_t * contextP, time_t currentTime, time_t * timeoutP);
 bool transaction_free_userData(lwm2m_context_t * context, lwm2m_transaction_t * transaction);
 bool transaction_set_payload(lwm2m_transaction_t *transaction, uint8_t *buffer, size_t length);
-
+void transaction_remove_client(lwm2m_context_t *contextP, lwm2m_client_t *clientP);
 // defined in management.c
 uint8_t dm_handleRequest(lwm2m_context_t * contextP, lwm2m_uri_t * uriP, lwm2m_server_t * serverP, coap_packet_t * message, coap_packet_t * response);
 
@@ -459,7 +459,7 @@ lwm2m_observed_t * observe_findByUri(lwm2m_context_t * contextP, lwm2m_uri_t * u
 // defined in registration.c
 uint8_t registration_handleRequest(lwm2m_context_t * contextP, lwm2m_uri_t * uriP, void * fromSessionH, coap_packet_t * message, coap_packet_t * response);
 void registration_deregister(lwm2m_context_t * contextP, lwm2m_server_t * serverP);
-void registration_freeClient(lwm2m_client_t * clientP);
+void registration_freeClient(lwm2m_context_t *contextP, lwm2m_client_t *clientP);
 uint8_t registration_start(lwm2m_context_t * contextP, bool restartFailed);
 void registration_step(lwm2m_context_t * contextP, time_t currentTime, time_t * timeoutP);
 lwm2m_status_t registration_getStatus(lwm2m_context_t * contextP);
