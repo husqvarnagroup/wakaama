@@ -659,3 +659,27 @@ bool lwm2m_session_is_equal(void * session1,
 {
     return (session1 == session2);
 }
+
+void lwm2m_session_remove(void *sessionH) {
+    dtls_connection_t *connP = (dtls_connection_t *)sessionH;
+    dtls_app_context_t *appContext = (dtls_app_context_t *)connP->dtlsContext;
+    dtls_connection_t *connIter;
+
+    connIter = appContext->connList;
+
+    if (connIter == NULL) {
+        return;
+    }
+    if (connIter == sessionH) {
+        /* First element */
+        free(sessionH);
+        appContext->connList = NULL;
+        return;
+    }
+
+    while (connIter->next != connP)
+        ;
+    connIter->next = connP->next;
+
+    free(connP);
+}

@@ -1457,7 +1457,11 @@ int main(int argc, char *argv[])
                      */
                     output_buffer(stderr, buffer, (size_t)numBytes, 0);
 
+#ifdef WITH_TINYDTLS
                     connP = connection_find(data.connList, &addr, addrLen);
+#else
+                    connP = connection_find(&addr, addrLen);
+#endif
                     if (connP != NULL)
                     {
                         /*
@@ -1529,8 +1533,11 @@ int main(int argc, char *argv[])
         lwm2m_close(lwm2mH);
     }
     close(data.sock);
+#ifdef WITH_TINYDTLS
     connection_free(data.connList);
-
+#else
+    connection_free();
+#endif
     clean_security_object(objArray[0]);
     lwm2m_free(objArray[0]);
     clean_server_object(objArray[1]);
