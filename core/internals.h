@@ -369,13 +369,13 @@ typedef struct
 } bs_data_t;
 #endif
 
-typedef enum
-{
+typedef enum {
     LWM2M_REQUEST_TYPE_UNKNOWN,
     LWM2M_REQUEST_TYPE_DM,
     LWM2M_REQUEST_TYPE_REGISTRATION,
     LWM2M_REQUEST_TYPE_BOOTSTRAP,
-    LWM2M_REQUEST_TYPE_DELETE_ALL
+    LWM2M_REQUEST_TYPE_DELETE_ALL,
+    LWM2M_REQUEST_TYPE_SEND
 } lwm2m_request_type_t;
 
 #ifdef LWM2M_SUPPORT_SENML_CBOR
@@ -455,6 +455,10 @@ void observe_clear(lwm2m_context_t * contextP, lwm2m_uri_t * uriP);
 bool observe_handleNotify(lwm2m_context_t * contextP, void * fromSessionH, coap_packet_t * message, coap_packet_t * response);
 void observe_remove(lwm2m_observation_t * observationP);
 lwm2m_observed_t * observe_findByUri(lwm2m_context_t * contextP, lwm2m_uri_t * uriP);
+
+#ifdef LWM2M_SERVER_MODE
+uint8_t reporting_handleSend(lwm2m_context_t *contextP, void *fromSessionH, coap_packet_t *message);
+#endif
 
 // defined in registration.c
 uint8_t registration_handleRequest(lwm2m_context_t * contextP, lwm2m_uri_t * uriP, void * fromSessionH, coap_packet_t * message, coap_packet_t * response);
