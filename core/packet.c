@@ -198,6 +198,9 @@ static uint8_t handle_request(lwm2m_context_t * contextP,
     case LWM2M_REQUEST_TYPE_REGISTRATION:
         result = registration_handleRequest(contextP, &uri, fromSessionH, message, response);
         break;
+    case LWM2M_REQUEST_TYPE_SEND:
+        result = reporting_handleSend(contextP, fromSessionH, message);
+        break;
 #endif
 #ifdef LWM2M_BOOTSTRAP_SERVER_MODE
     case LWM2M_REQUEST_TYPE_BOOTSTRAP:
