@@ -370,6 +370,7 @@ int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
     }
     else if (fval == val)
     {
+#ifndef CBOR_NO_FLOAT16_ENCODING
         // Single or half precision
         uint32_t uval = *(uint32_t*)&fval;
         uint32_t mant = uval & 0x7FFFFF;
@@ -421,6 +422,17 @@ int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
             buffer[4] = (uint8_t)uval;
             result = 5;
         }
+#else
+        uint32_t uval;
+        if (bufferLen < 5) return 0;
+        uval = *(uint32_t*)&fval;
+        buffer[0] = (CBOR_FLOATING_OR_SIMPLE << 5) | CBOR_AI_FOUR_BYTE_VALUE;
+        buffer[1] = (uint8_t)(uval >> 24);
+        buffer[2] = (uint8_t)(uval >> 16);
+        buffer[3] = (uint8_t)(uval >> 8);
+        buffer[4] = (uint8_t)uval;
+        result = 5;
+#endif
     }
     else
     {
