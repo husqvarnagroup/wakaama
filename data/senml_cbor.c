@@ -617,7 +617,7 @@ static int prv_serializeValue(const lwm2m_data_t * tlvP,
     return head + res;
 }
 
-static int prv_serializeTlv(const lwm2m_data_t * tlvP,
+static int prv_serializeCbor(const lwm2m_data_t * tlvP,
                             const uint8_t * baseUriStr,
                             size_t baseUriLen,
                             uri_depth_t baseLevel,
@@ -727,16 +727,8 @@ static int prv_serializeData(const lwm2m_data_t * tlvP,
     {
         if (tlvP->value.asChildren.count == 0)
         {
-            res = prv_serializeTlv(tlvP,
-                                   baseUriStr,
-                                   baseUriLen,
-                                   baseLevel,
-                                   parentUriStr,
-                                   parentUriLen,
-                                   level,
-                                   baseNameOutput,
-                                   buffer + head,
-                                   bufferLen - head);
+            res = prv_serializeCbor(tlvP, baseUriStr, baseUriLen, baseLevel, parentUriStr, parentUriLen, level,
+                                    baseNameOutput, buffer + head, bufferLen - head);
             if (res < 0) return -1;
             head += res;
             *numRecords += 1;
@@ -781,16 +773,8 @@ static int prv_serializeData(const lwm2m_data_t * tlvP,
     break;
 
     default:
-        res = prv_serializeTlv(tlvP,
-                               baseUriStr,
-                               baseUriLen,
-                               baseLevel,
-                               parentUriStr,
-                               parentUriLen,
-                               level,
-                               baseNameOutput,
-                               buffer + head,
-                               bufferLen - head);
+        res = prv_serializeCbor(tlvP, baseUriStr, baseUriLen, baseLevel, parentUriStr, parentUriLen, level,
+                                baseNameOutput, buffer + head, bufferLen - head);
         if (res < 0) return -1;
         head += res;
         *numRecords += 1;
