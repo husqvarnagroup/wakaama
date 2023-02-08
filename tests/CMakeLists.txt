@@ -54,3 +54,6 @@ endif()
 
 # Add our unit tests to the "test" target
 add_test(NAME ${TARGET_NAME}_test COMMAND ${TARGET_NAME})
+
+# Integration Tests with leshan
+add_subdirectory(leshan)
