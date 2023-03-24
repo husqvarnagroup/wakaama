@@ -89,6 +89,7 @@
     else if (!LWM2M_URI_IS_SET_RESOURCE_INSTANCE(URI)) lwm2m_printf("[%s:%d] /%d/%d/%d\r\n", __func__ , __LINE__, (URI)->objectId, (URI)->instanceId, (URI)->resourceId); \
     else lwm2m_printf("[%s:%d] /%d/%d/%d/%d\r\n", __func__ , __LINE__, (URI)->objectId, (URI)->instanceId, (URI)->resourceId, (URI)->resourceInstanceId)
 #endif
+// clang-format off
 #define STR_STATUS(S)                                           \
 ((S) == STATE_DEREGISTERED ? "STATE_DEREGISTERED" :             \
 ((S) == STATE_REG_HOLD_OFF ? "STATE_REG_HOLD_OFF" :             \
@@ -129,6 +130,7 @@
 #define LOG(STR)
 #define LOG_URI(URI)
 #endif
+// clang-format on
 
 #define LWM2M_DEFAULT_LIFETIME  86400
 
