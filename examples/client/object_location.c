@@ -24,6 +24,7 @@
 */
 
 /*
+ * clang-format off
  *  Object     |      | Multiple  |     | Description                   |
  *  Name       |  ID  | Instances |Mand.|                               |
  *-------------+------+-----------+-----+-------------------------------+
@@ -43,6 +44,7 @@
  *  Timestamp   |  5  |  R   | Single  | Yes | Time    |       |   s   | The timestamp when the location measurement was performed.                       |
  *  Speed       |  6  |  R   | Single  | No  | Float   |       |  m/s  | Speed is the time rate of change in position of a LwM2M Client without regard    |
  *              |     |      |         |     |         |       |       | for direction: the scalar component of velocity.                                 |
+ * clang-format on
  */
 
 #include "liblwm2m.h"
