@@ -43,27 +43,22 @@
 
 #include "liblwm2m.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-
-typedef struct _security_instance_
-{
-    struct _security_instance_ * next;        // matches lwm2m_list_t::next
-    uint16_t                     instanceId;  // matches lwm2m_list_t::id
-    char *                       uri;
-    bool                         isBootstrap;
-    uint16_t                     shortID;
-    uint32_t                     clientHoldOffTime;
+typedef struct _security_instance_ {
+    struct _security_instance_ *next; // matches lwm2m_list_t::next
+    uint16_t instanceId;              // matches lwm2m_list_t::id
+    char *uri;
+    bool isBootstrap;
+    uint16_t shortID;
+    uint32_t clientHoldOffTime;
 } security_instance_t;
 
-static uint8_t prv_get_value(lwm2m_data_t * dataP,
-                             security_instance_t * targetP)
-{
+static uint8_t prv_get_value(lwm2m_data_t *dataP, security_instance_t *targetP) {
 
-    switch (dataP->id)
-    {
+    switch (dataP->id) {
     case LWM2M_SECURITY_URI_ID:
         lwm2m_data_encode_string(targetP->uri, dataP);
         return COAP_205_CONTENT;
@@ -110,7 +105,7 @@ static uint8_t prv_get_value(lwm2m_data_t * dataP,
     case LWM2M_SECURITY_SMS_KEY_PARAM_ID:
         // Here we return an opaque of 6 bytes containing a buggy value
         {
-            char * value = "12345";
+            char *value = "12345";
             lwm2m_data_encode_opaque((uint8_t *)value, 6, dataP);
         }
         return COAP_205_CONTENT;
@@ -118,7 +113,7 @@ static uint8_t prv_get_value(lwm2m_data_t * dataP,
     case LWM2M_SECURITY_SMS_SECRET_KEY_ID:
         // Here we return an opaque of 32 bytes containing a buggy value
         {
-            char * value = "1234567890abcdefghijklmnopqrstu";
+            char *value = "1234567890abcdefghijklmnopqrstu";
             lwm2m_data_encode_opaque((uint8_t *)value, 32, dataP);
         }
         return COAP_205_CONTENT;
@@ -140,13 +135,9 @@ static uint8_t prv_get_value(lwm2m_data_t * dataP,
     }
 }
 
-static uint8_t prv_security_read(lwm2m_context_t * contextP,
-                                 uint16_t instanceId,
-                                 int * numDataP,
-                                 lwm2m_data_t ** dataArrayP,
-                                 lwm2m_object_t * objectP)
-{
-    security_instance_t * targetP;
+static uint8_t prv_security_read(lwm2m_context_t *contextP, uint16_t instanceId, int *numDataP,
+                                 lwm2m_data_t **dataArrayP, lwm2m_object_t *objectP) {
+    security_instance_t *targetP;
     uint8_t result;
     int i;
 
@@ -154,11 +145,11 @@ static uint8_t prv_security_read(lwm2m_context_t * contextP,
     (void)contextP;
 
     targetP = (security_instance_t *)lwm2m_list_find(objectP->instanceList, instanceId);
-    if (NULL == targetP) return COAP_404_NOT_FOUND;
+    if (NULL == targetP)
+        return COAP_404_NOT_FOUND;
 
     // is the server asking for the full instance ?
-    if (*numDataP == 0)
-    {
+    if (*numDataP == 0) {
         uint16_t resList[] = {LWM2M_SECURITY_URI_ID,
                               LWM2M_SECURITY_BOOTSTRAP_ID,
                               LWM2M_SECURITY_SECURITY_ID,
@@ -171,26 +162,22 @@ static uint8_t prv_security_read(lwm2m_context_t * contextP,
                               LWM2M_SECURITY_SMS_SERVER_NUMBER_ID,
                               LWM2M_SECURITY_SHORT_SERVER_ID,
                               LWM2M_SECURITY_HOLD_OFF_ID};
-        int nbRes = sizeof(resList)/sizeof(uint16_t);
+        int nbRes = sizeof(resList) / sizeof(uint16_t);
 
         *dataArrayP = lwm2m_data_new(nbRes);
-        if (*dataArrayP == NULL) return COAP_500_INTERNAL_SERVER_ERROR;
+        if (*dataArrayP == NULL)
+            return COAP_500_INTERNAL_SERVER_ERROR;
         *numDataP = nbRes;
-        for (i = 0 ; i < nbRes ; i++)
-        {
+        for (i = 0; i < nbRes; i++) {
             (*dataArrayP)[i].id = resList[i];
         }
     }
 
     i = 0;
-    do
-    {
-        if ((*dataArrayP)[i].type == LWM2M_TYPE_MULTIPLE_RESOURCE)
-        {
+    do {
+        if ((*dataArrayP)[i].type == LWM2M_TYPE_MULTIPLE_RESOURCE) {
             result = COAP_404_NOT_FOUND;
-        }
-        else
-        {
+        } else {
             result = prv_get_value((*dataArrayP) + i, targetP);
         }
         i++;
@@ -200,13 +187,12 @@ static uint8_t prv_security_read(lwm2m_context_t * contextP,
 }
 
 lwm2m_object_t *get_security_object(void) {
-    lwm2m_object_t * securityObj;
+    lwm2m_object_t *securityObj;
 
     securityObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
 
-    if (NULL != securityObj)
-    {
-        security_instance_t * targetP;
+    if (NULL != securityObj) {
+        security_instance_t *targetP;
 
         memset(securityObj, 0, sizeof(lwm2m_object_t));
 
@@ -214,8 +200,7 @@ lwm2m_object_t *get_security_object(void) {
 
         // Manually create an hardcoded instance
         targetP = (security_instance_t *)lwm2m_malloc(sizeof(security_instance_t));
-        if (NULL == targetP)
-        {
+        if (NULL == targetP) {
             lwm2m_free(securityObj);
             return NULL;
         }
@@ -235,14 +220,11 @@ lwm2m_object_t *get_security_object(void) {
     return securityObj;
 }
 
-void free_security_object(lwm2m_object_t * objectP)
-{
-    while (objectP->instanceList != NULL)
-    {
-        security_instance_t * securityInstance = (security_instance_t *)objectP->instanceList;
+void free_security_object(lwm2m_object_t *objectP) {
+    while (objectP->instanceList != NULL) {
+        security_instance_t *securityInstance = (security_instance_t *)objectP->instanceList;
         objectP->instanceList = objectP->instanceList->next;
-        if (NULL != securityInstance->uri)
-        {
+        if (NULL != securityInstance->uri) {
             lwm2m_free(securityInstance->uri);
         }
         lwm2m_free(securityInstance);
@@ -250,13 +232,10 @@ void free_security_object(lwm2m_object_t * objectP)
     lwm2m_free(objectP);
 }
 
-char * get_server_uri(lwm2m_object_t * objectP,
-                      uint16_t secObjInstID)
-{
-    security_instance_t * targetP = (security_instance_t *)LWM2M_LIST_FIND(objectP->instanceList, secObjInstID);
+char *get_server_uri(lwm2m_object_t *objectP, uint16_t secObjInstID) {
+    security_instance_t *targetP = (security_instance_t *)LWM2M_LIST_FIND(objectP->instanceList, secObjInstID);
 
-    if (NULL != targetP)
-    {
+    if (NULL != targetP) {
         return lwm2m_strdup(targetP->uri);
     }
 
