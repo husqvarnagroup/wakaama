@@ -15,60 +15,40 @@
  *******************************************************************************/
 
 #include <liblwm2m.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include <time.h>
 
+void *lwm2m_malloc(size_t s) { return malloc(s); }
 
-void * lwm2m_malloc(size_t s)
-{
-    return malloc(s);
-}
+void lwm2m_free(void *p) { free(p); }
 
-void lwm2m_free(void * p)
-{
-    free(p);
-}
-
-char * lwm2m_strdup(const char * str)
-{
+char *lwm2m_strdup(const char *str) {
     if (!str) {
-      return NULL;
+        return NULL;
     }
 
     const int len = strlen(str) + 1;
-    char * const buf = lwm2m_malloc(len);
+    char *const buf = lwm2m_malloc(len);
 
     if (buf) {
-      memset(buf, 0, len);
-      memcpy(buf, str, len - 1);
+        memset(buf, 0, len);
+        memcpy(buf, str, len - 1);
     }
 
     return buf;
 }
 
+int lwm2m_strncmp(const char *s1, const char *s2, size_t n) { return strncmp(s1, s2, n); }
 
-int lwm2m_strncmp(const char * s1,
-                     const char * s2,
-                     size_t n)
-{
-    return strncmp(s1, s2, n);
-}
+int lwm2m_strcasecmp(const char *str1, const char *str2) { return strcasecmp(str1, str2); }
 
-int lwm2m_strcasecmp(const char * str1, const char * str2) {
-    return strcasecmp(str1, str2);
-}
+time_t lwm2m_gettime(void) { return time(NULL); }
 
-time_t lwm2m_gettime(void)
-{
-    return time(NULL);
-}
-
-void lwm2m_printf(const char * format, ...)
-{
+void lwm2m_printf(const char *format, ...) {
     va_list ap;
 
     va_start(ap, format);

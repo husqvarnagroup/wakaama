@@ -15,37 +15,32 @@
  *
  *******************************************************************************/
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "CUnit/Basic.h"
 
 #include "tests.h"
 
 // stub function
-void * lwm2m_connect_server(uint16_t secObjInstID,
-                            void * userData)
-{
+void *lwm2m_connect_server(uint16_t secObjInstID, void *userData) {
     (void)userData;
     return (void *)(uintptr_t)secObjInstID;
 }
 
-void lwm2m_close_connection(void * sessionH,
-                            void * userData)
-{
+void lwm2m_close_connection(void *sessionH, void *userData) {
     (void)sessionH;
     (void)userData;
     return;
 }
 
-CU_ErrorCode add_tests(CU_pSuite pSuite, struct TestTable* testTable)
-{
+CU_ErrorCode add_tests(CU_pSuite pSuite, struct TestTable *testTable) {
     int index;
     for (index = 0; NULL != testTable && NULL != testTable[index].name; ++index) {
         if (NULL == CU_add_test(pSuite, testTable[index].name, testTable[index].function)) {
             fprintf(stderr, "Failed to add test %s\n", testTable[index].name);
             return CU_get_error();
-         }
+        }
     }
     return CUE_SUCCESS;
 }
@@ -74,24 +69,24 @@ int main(void) {
         goto exit;
 
 #ifdef LWM2M_SUPPORT_SENML_JSON
-   if (CUE_SUCCESS != create_senml_json_suit())
-       goto exit;
+    if (CUE_SUCCESS != create_senml_json_suit())
+        goto exit;
 #endif
 
-   if (CUE_SUCCESS != create_er_coap_parse_message_suit())
-       goto exit;
+    if (CUE_SUCCESS != create_er_coap_parse_message_suit())
+        goto exit;
 
-   CU_basic_set_mode(CU_BRM_VERBOSE);
-   CU_basic_run_tests();
-   CU_basic_show_failures(CU_get_failure_list());
-   printf("\n");
+    CU_basic_set_mode(CU_BRM_VERBOSE);
+    CU_basic_run_tests();
+    CU_basic_show_failures(CU_get_failure_list());
+    printf("\n");
 
-   if (CU_get_number_of_tests_failed() > 0) {
-     return 1;
-   }
-   return 0;
+    if (CU_get_number_of_tests_failed() > 0) {
+        return 1;
+    }
+    return 0;
 
 exit:
-   CU_cleanup_registry();
-   return CU_get_error();
+    CU_cleanup_registry();
+    return CU_get_error();
 }

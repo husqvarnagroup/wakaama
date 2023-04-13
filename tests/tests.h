@@ -21,11 +21,11 @@
 #include "CUnit/CUError.h"
 
 struct TestTable {
-    const char* name;
+    const char *name;
     CU_TestFunc function;
 };
 
-CU_ErrorCode add_tests(CU_pSuite pSuite, struct TestTable* testTable);
+CU_ErrorCode add_tests(CU_pSuite pSuite, struct TestTable *testTable);
 CU_ErrorCode create_uri_suit(void);
 CU_ErrorCode create_tlv_suit(void);
 CU_ErrorCode create_object_read_suit(void);
