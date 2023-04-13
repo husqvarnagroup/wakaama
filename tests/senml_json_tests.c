@@ -33,6 +33,7 @@
 
 #ifdef LWM2M_SUPPORT_SENML_JSON
 
+// clang-format off
 #ifndef STR_MEDIA_TYPE
 #define STR_MEDIA_TYPE(M)                          \
 ((M) == LWM2M_CONTENT_TEXT ? "Text" :              \
@@ -43,6 +44,7 @@
 ((M) == LWM2M_CONTENT_SENML_JSON ? "SenML JSON" :  \
 "Unknown"))))))
 #endif
+// clang-format on
 
 static void senml_json_test_data(const char * uriStr,
                         lwm2m_media_type_t format,
