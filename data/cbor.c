@@ -359,7 +359,8 @@ int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
     float fval = val;
 
     if (bufferLen < 3) return 0;
-
+    _Pragma("GCC diagnostic push");
+    _Pragma("GCC diagnostic ignored \"-Wfloat-equal\"");
     if (val != val)
     {
         // NaN
@@ -451,7 +452,7 @@ int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
         buffer[8] = (uint8_t)uval;
         result = 9;
     }
-
+    _Pragma("GCC diagnostic pop");
     return result;
 }
 
