@@ -374,6 +374,8 @@ static void cbor_test_data_expected(const char * uriStr,
             }
             break;
             case LWM2M_TYPE_FLOAT:
+                _Pragma("GCC diagnostic push");
+                _Pragma("GCC diagnostic ignored \"-Wfloat-equal\"");
                 if (tlvP->type != dataP->type)
                 {
                     printf("(Parsing %s from %s differs from original.)\t", id, STR_MEDIA_TYPE(format));
@@ -399,6 +401,7 @@ static void cbor_test_data_expected(const char * uriStr,
                     }
                 }
                 break;
+                _Pragma("GCC diagnostic pop");
             case LWM2M_TYPE_BOOLEAN:
                 if (tlvP->type != dataP->type
                  || tlvP->value.asBoolean != dataP->value.asBoolean)

@@ -19,8 +19,15 @@
 #include <math.h>
 
 #include "internals.h"
-
+#include <assert.h>
 #ifdef LWM2M_SUPPORT_SENML_CBOR
+
+/*
+ *
+ */
+#if (__STDC_VERSION__ >= 201112L)
+static_assert(sizeof(double) == sizeof(uint64_t), "sizeof(double) != sizeof(uint64_t)");
+#endif
 
 #ifdef LWM2M_VERSION_1_0
 #error CBOR not supported with LWM2M 1.0
@@ -169,15 +176,16 @@ int cbor_get_type_and_value(const uint8_t * buffer,
                 }
             }
             *type = CBOR_TYPE_FLOAT;
-            *value = *(uint64_t*)&dval;
+            memcpy(value, &dval, sizeof(dval));
             break;
         case CBOR_AI_FOUR_BYTE_VALUE:
             {
-                int32_t val32 = val;
-                dval = *(float*)&val32;
+                float fval;
+                memcpy(&fval, &val, 4);
+                dval = fval;
             }
             *type = CBOR_TYPE_FLOAT;
-            *value = *(uint64_t*)&dval;
+            memcpy(value, &dval, sizeof(dval));
             break;
         case CBOR_AI_EIGHT_BYTE_VALUE:
             *type = CBOR_TYPE_FLOAT;
@@ -225,7 +233,7 @@ int cbor_get_singular(const uint8_t * buffer, size_t bufferLen, lwm2m_data_t *da
             break;
         case CBOR_TYPE_FLOAT:
             dataP->type = LWM2M_TYPE_FLOAT;
-            dataP->value.asFloat = *(double *)&val;
+            memcpy(&dataP->value.asFloat, &val, sizeof(val));
             break;
         case CBOR_TYPE_SEMANTIC_TAG:
             // Only 1 tag allowed.
@@ -356,7 +364,7 @@ int prv_put_value(uint8_t * buffer, int bufferLen, uint8_t mt, uint64_t val)
 int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
 {
     int result = 0;
-    float fval = val;
+    float fval = (float) val;
 
     if (bufferLen < 3) return 0;
     _Pragma("GCC diagnostic push");
@@ -373,7 +381,8 @@ int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
     {
 #ifndef CBOR_NO_FLOAT16_ENCODING
         // Single or half precision
-        uint32_t uval = *(uint32_t*)&fval;
+        uint32_t uval;
+        memcpy(&uval, &fval, sizeof(fval));
         uint32_t mant = uval & 0x7FFFFF;
         int32_t exp = ((uval >> 23) & 0xFF) - 127;
         uint8_t sign = (uint8_t)((uval & 0x80000000u) >> 24);
@@ -440,7 +449,7 @@ int prv_put_float(uint8_t *buffer, size_t bufferLen, double val)
         // Double precision
         uint64_t uval;
         if (bufferLen < 9) return 0;
-        uval = *(uint64_t*)&val;
+        memcpy(&uval, &val, sizeof(val));
         buffer[0] = (CBOR_FLOATING_OR_SIMPLE << 5) | CBOR_AI_EIGHT_BYTE_VALUE;
         buffer[1] = (uint8_t)(uval >> 56);
         buffer[2] = (uint8_t)(uval >> 48);
@@ -466,7 +475,11 @@ int cbor_put_type_and_value(uint8_t *buffer,
     if (bufferLen < 1) return 0;
 
     if (type == CBOR_TYPE_NEGATIVE_INTEGER) val = ~val;
-    if (type == CBOR_TYPE_FLOAT) return prv_put_float(buffer, bufferLen, *(double*)&val);
+    if (type == CBOR_TYPE_FLOAT) {
+        double dval;
+        memcpy(&dval, &val, sizeof(val));
+        return prv_put_float(buffer, bufferLen, dval);
+    }
 
     switch (type)
     {
