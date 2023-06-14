@@ -198,19 +198,37 @@ bool lwm2m_session_is_equal(void * session1, void * session2, void * userData);
 /*
  * Resource IDs for the LWM2M Security Object
  */
-#define LWM2M_SECURITY_URI_ID                 0
-#define LWM2M_SECURITY_BOOTSTRAP_ID           1
-#define LWM2M_SECURITY_SECURITY_ID            2
-#define LWM2M_SECURITY_PUBLIC_KEY_ID          3
-#define LWM2M_SECURITY_SERVER_PUBLIC_KEY_ID   4
-#define LWM2M_SECURITY_SECRET_KEY_ID          5
-#define LWM2M_SECURITY_SMS_SECURITY_ID        6
-#define LWM2M_SECURITY_SMS_KEY_PARAM_ID       7
-#define LWM2M_SECURITY_SMS_SECRET_KEY_ID      8
-#define LWM2M_SECURITY_SMS_SERVER_NUMBER_ID   9
-#define LWM2M_SECURITY_SHORT_SERVER_ID        10
-#define LWM2M_SECURITY_HOLD_OFF_ID            11
-#define LWM2M_SECURITY_BOOTSTRAP_TIMEOUT_ID   12
+#define LWM2M_SECURITY_URI_ID                           0
+#define LWM2M_SECURITY_BOOTSTRAP_ID                     1
+#define LWM2M_SECURITY_SECURITY_ID                      2
+#define LWM2M_SECURITY_PUBLIC_KEY_ID                    3
+#define LWM2M_SECURITY_SERVER_PUBLIC_KEY_ID             4
+#define LWM2M_SECURITY_SECRET_KEY_ID                    5
+#define LWM2M_SECURITY_SMS_SECURITY_ID                  6
+#define LWM2M_SECURITY_SMS_KEY_PARAM_ID                 7
+#define LWM2M_SECURITY_SMS_SECRET_KEY_ID                8
+#define LWM2M_SECURITY_SMS_SERVER_NUMBER_ID             9
+#define LWM2M_SECURITY_SHORT_SERVER_ID                  10
+#define LWM2M_SECURITY_HOLD_OFF_ID                      11
+#define LWM2M_SECURITY_BOOTSTRAP_TIMEOUT_ID             12
+#define LWM2M_SECURITY_MATCHING_TYPE                    13
+#define LWM2M_SECURITY_SNI                              14
+#define LWM2M_SECURITY_CERTIFICATE_USAGE                15
+#define LWM2M_SECURITY_DTLS_TLS_CIPHERSUITE             16
+#define LWM2M_SECURITY_OSCORE_SECURITY_MODE             17
+#define LWM2M_SECURITY_GROUPS_USE_BY_CLIENT             18
+#define LWM2M_SECURITY_SIG_ALG_SUPP_BY_SERVER           19
+#define LWM2M_SECURITY_SIG_ALG_USE_BY_CLIENT            20
+#define LWM2M_SECURITY_SIG_ALG_CERTS_SUPP_BY_SERVER     21
+#define LWM2M_SECURITY_TLS_1_3_FEATURES_USE_BY_CLIENT   22
+#define LWM2M_SECURITY_TLS_EXTENSIONS_SUPP_BY_SERVER    23
+#define LWM2M_SECURITY_TLS_EXTENSIONS_TO_USE_BY_CLIENT  24
+#define LWM2M_SECURITY_SECONDARY_LWM2M_SERVER_URI       25
+#define LWM2M_SECURITY_MQTT_SERVER                      26
+#define LWM2M_SECURITY_LWM2M_COSE_SECURITY              27
+#define LWM2M_SECURITY_RDS_DESTINATION_PORT             28
+#define LWM2M_SECURITY_RDS_SOURCE_PORT                  29
+#define LWM2M_SECURITY_RDS_APPLICATION_ID               30
 
 /*
  * Resource IDs for the LWM2M Server Object
