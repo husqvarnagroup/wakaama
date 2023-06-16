@@ -153,6 +153,7 @@ bool lwm2m_session_is_equal(void * session1, void * session2, void * userData);
  * Error code
  */
 
+// clang-format off
 #define COAP_NO_ERROR                   (uint8_t)0x00
 #define COAP_IGNORE                     (uint8_t)0x01
 #define COAP_RETRANSMISSION             (uint8_t)0x02
@@ -237,7 +238,7 @@ bool lwm2m_session_is_equal(void * session1, void * session2, void * userData);
 #define LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY  1
 #define LWM2M_SECURITY_MODE_CERTIFICATE     2
 #define LWM2M_SECURITY_MODE_NONE            3
-
+// clang-format on
 
 /*
  * Utility functions for sorted linked list
