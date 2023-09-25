@@ -498,7 +498,7 @@ static int prv_makeOperation(lwm2m_context_t *contextP, uint16_t clientID, lwm2m
     lwm2m_transaction_t * transaction;
     dm_data_t * dataP;
 
-    clientP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)contextP->clientList, clientID);
+    clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(contextP->clientList, clientID);
     if (clientP == NULL) return COAP_404_NOT_FOUND;
 
     transaction = transaction_new(clientP->sessionH, method, clientP->altPath, uriP, contextP->nextMID++, 4, NULL);
@@ -551,7 +551,7 @@ int prv_lwm2m_dm_read(lwm2m_context_t * contextP,
     LOG_ARG("clientID: %d", clientID);
     LOG_URI(uriP);
 
-    clientP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)contextP->clientList, clientID);
+    clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(contextP->clientList, clientID);
     if (clientP == NULL) return COAP_404_NOT_FOUND;
 
     return prv_makeOperation(contextP, clientID, uriP,
@@ -717,7 +717,7 @@ int lwm2m_dm_write_attributes(lwm2m_context_t * contextP,
     if (ATTR_FLAG_NUMERIC == (attrP->toSet & ATTR_FLAG_NUMERIC)
      && (attrP->lessThan + 2 * attrP->step >= attrP->greaterThan)) return COAP_400_BAD_REQUEST;
 
-    clientP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)contextP->clientList, clientID);
+    clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(contextP->clientList, clientID);
     if (clientP == NULL) return COAP_404_NOT_FOUND;
 
     transaction = transaction_new(clientP->sessionH, COAP_PUT, clientP->altPath, uriP, contextP->nextMID++, 4, NULL);
@@ -847,7 +847,7 @@ int lwm2m_dm_discover(lwm2m_context_t * contextP,
 
     LOG_ARG("clientID: %d", clientID);
     LOG_URI(uriP);
-    clientP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)contextP->clientList, clientID);
+    clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(contextP->clientList, clientID);
     if (clientP == NULL) return COAP_404_NOT_FOUND;
 
     transaction = transaction_new(clientP->sessionH, COAP_GET, clientP->altPath, uriP, contextP->nextMID++, 4, NULL);

@@ -80,7 +80,7 @@ static void test_list_rm(void) {
 
 static void test_list_newId(void) {
     list_node_t *list = reset_list();
-    const uint16_t id = lwm2m_list_newId((lwm2m_list_t *)list);
+    const uint16_t id = LWM2M_LIST_NEW_ID(list);
     CU_ASSERT_EQUAL(id, 1);
 }
 

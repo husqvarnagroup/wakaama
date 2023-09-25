@@ -502,7 +502,7 @@ uint8_t object_create(lwm2m_context_t * contextP,
     default:
         if (!LWM2M_URI_IS_SET_INSTANCE(uriP))
         {
-            uriP->instanceId = lwm2m_list_newId(targetP->instanceList);
+            uriP->instanceId = LWM2M_LIST_NEW_ID(targetP->instanceList);
         }
         result = targetP->createFunc(contextP, uriP->instanceId, size, dataP, targetP);
         break;
@@ -1212,7 +1212,7 @@ uint8_t object_createInstance(lwm2m_context_t * contextP,
         return COAP_405_METHOD_NOT_ALLOWED;
     }
 
-    return targetP->createFunc(contextP, lwm2m_list_newId(targetP->instanceList), dataP->value.asChildren.count, dataP->value.asChildren.array, targetP);
+    return targetP->createFunc(contextP, LWM2M_LIST_NEW_ID(targetP->instanceList), dataP->value.asChildren.count, dataP->value.asChildren.array, targetP);
 }
 
 uint8_t object_writeInstance(lwm2m_context_t * contextP,

@@ -403,7 +403,7 @@ static void prv_do_write_client(char * buffer,
     if (count > 0)
     {
         lwm2m_client_t * clientP = NULL;
-        clientP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)lwm2mH->clientList, clientId);
+        clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(lwm2mH->clientList, clientId);
         if (clientP != NULL)
         {
             lwm2m_media_type_t format = clientP->format;
@@ -963,7 +963,7 @@ static void prv_monitor_callback(lwm2m_context_t *lwm2mH, uint16_t clientID, lwm
     case COAP_201_CREATED:
         fprintf(stdout, "\r\nNew client #%d registered.\r\n", clientID);
 
-        targetP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)lwm2mH->clientList, clientID);
+        targetP = (lwm2m_client_t *)LWM2M_LIST_FIND(lwm2mH->clientList, clientID);
 
         prv_dump_client(targetP);
         break;
@@ -975,7 +975,7 @@ static void prv_monitor_callback(lwm2m_context_t *lwm2mH, uint16_t clientID, lwm
     case COAP_204_CHANGED:
         fprintf(stdout, "\r\nClient #%d updated.\r\n", clientID);
 
-        targetP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)lwm2mH->clientList, clientID);
+        targetP = (lwm2m_client_t *)LWM2M_LIST_FIND(lwm2mH->clientList, clientID);
 
         prv_dump_client(targetP);
         break;

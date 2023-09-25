@@ -553,7 +553,7 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                         peerP->lifetime = LWM2M_DEFAULT_LIFETIME;
                         peerP->endOfLife = lwm2m_gettime() + LWM2M_DEFAULT_LIFETIME;
                         peerP->sessionH = fromSessionH;
-                        peerP->internalID = lwm2m_list_newId((lwm2m_list_t *)contextP->clientList);
+                        peerP->internalID = LWM2M_LIST_NEW_ID(contextP->clientList);
                         contextP->clientList = (lwm2m_client_t *)LWM2M_LIST_ADD(contextP->clientList, peerP);
                     }
                 }

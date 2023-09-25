@@ -1650,7 +1650,7 @@ static lwm2m_client_object_t *prv_decodeRegisterPayload(uint8_t *payload, size_t
         {
             lwm2m_client_object_t * objectP;
 
-            objectP = (lwm2m_client_object_t *)lwm2m_list_find((lwm2m_list_t *)objList, id);
+            objectP = (lwm2m_client_object_t *)LWM2M_LIST_FIND(objList, id);
             if (objectP == NULL)
             {
                 objectP = (lwm2m_client_object_t *)lwm2m_malloc(sizeof(lwm2m_client_object_t));
@@ -1668,7 +1668,7 @@ static lwm2m_client_object_t *prv_decodeRegisterPayload(uint8_t *payload, size_t
             {
                 lwm2m_list_t * instanceP;
 
-                instanceP = lwm2m_list_find(objectP->instanceList, instance);
+                instanceP = LWM2M_LIST_FIND(objectP->instanceList, instance);
                 if (instanceP == NULL)
                 {
                     instanceP = (lwm2m_list_t *)lwm2m_malloc(sizeof(lwm2m_list_t));
@@ -1879,7 +1879,7 @@ uint8_t  registration_handleRequest(lwm2m_context_t * contextP,
                     return COAP_500_INTERNAL_SERVER_ERROR;
                 }
                 memset(clientP, 0, sizeof(lwm2m_client_t));
-                clientP->internalID = lwm2m_list_newId((lwm2m_list_t *)contextP->clientList);
+                clientP->internalID = LWM2M_LIST_NEW_ID(contextP->clientList);
                 contextP->clientList = (lwm2m_client_t *)LWM2M_LIST_ADD(contextP->clientList, clientP);
             }
             clientP->name = name;
@@ -1915,7 +1915,7 @@ uint8_t  registration_handleRequest(lwm2m_context_t * contextP,
             // Registration update
             if (LWM2M_URI_IS_SET_INSTANCE(uriP)) return COAP_400_BAD_REQUEST;
 
-            clientP = (lwm2m_client_t *)lwm2m_list_find((lwm2m_list_t *)contextP->clientList, uriP->objectId);
+            clientP = (lwm2m_client_t *)LWM2M_LIST_FIND(contextP->clientList, uriP->objectId);
             if (clientP == NULL) return COAP_404_NOT_FOUND;
 
             // Endpoint client name MUST NOT be present
@@ -1955,7 +1955,7 @@ uint8_t  registration_handleRequest(lwm2m_context_t * contextP,
 
                     nextP = observationP->next;
 
-                    objP = (lwm2m_client_object_t *)lwm2m_list_find((lwm2m_list_t *)objects, observationP->uri.objectId);
+                    objP = (lwm2m_client_object_t *)LWM2M_LIST_FIND(objects, observationP->uri.objectId);
                     if (objP == NULL)
                     {
                         observationP->callback(contextP,
@@ -1973,7 +1973,7 @@ uint8_t  registration_handleRequest(lwm2m_context_t * contextP,
                     {
                         if (LWM2M_URI_IS_SET_INSTANCE(&observationP->uri))
                         {
-                            if (lwm2m_list_find((lwm2m_list_t *)objP->instanceList, observationP->uri.instanceId) == NULL)
+                            if (LWM2M_LIST_FIND(objP->instanceList, observationP->uri.instanceId) == NULL)
                             {
                                 observationP->callback(contextP,
                                 		               observationP->clientP->internalID,

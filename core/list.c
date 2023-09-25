@@ -95,7 +95,7 @@ lwm2m_list_t * lwm2m_list_remove(lwm2m_list_t * head,
     return head;
 }
 
-uint16_t lwm2m_list_newId(lwm2m_list_t * head)
+uint16_t lwm2m_list_new_id(lwm2m_list_t * head)
 {
     uint16_t id;
     lwm2m_list_t * target;

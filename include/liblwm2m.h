@@ -251,21 +251,26 @@ typedef struct _lwm2m_list_t
 
 // defined in list.c
 // Add 'node' to the list 'head' and return the new list
-lwm2m_list_t * lwm2m_list_add(lwm2m_list_t * head, lwm2m_list_t * node);
+#define LWM2M_LIST_ADD(head, node) lwm2m_list_add((lwm2m_list_t *)head, (lwm2m_list_t *)node);
 // Return the node with ID 'id' from the list 'head' or NULL if not found
-lwm2m_list_t * lwm2m_list_find(lwm2m_list_t * head, uint16_t id);
+#define LWM2M_LIST_FIND(head, id) lwm2m_list_find((lwm2m_list_t *)head, id)
 // Remove the node with ID 'id' from the list 'head' and return the new list
-lwm2m_list_t * lwm2m_list_remove(lwm2m_list_t * head, uint16_t id, lwm2m_list_t ** nodeP);
+#define LWM2M_LIST_RM(head, id, node) lwm2m_list_remove((lwm2m_list_t *)head, id, (lwm2m_list_t **)node);
 // Return the lowest unused ID in the list 'head'. The ID 0 as return value is currently unused.
-uint16_t lwm2m_list_newId(lwm2m_list_t * head);
+#define LWM2M_LIST_NEW_ID(head) lwm2m_list_new_id((lwm2m_list_t *)head)
 // Free a list. Do not use if nodes contain allocated pointers as it calls lwm2m_free on nodes only.
 // If the nodes of the list need to do more than just "free()" their instances, don't use lwm2m_list_free().
+#define LWM2M_LIST_FREE(head) lwm2m_list_free((lwm2m_list_t *)head)
+
+/* The implementations of the list functions. Use the macros in application code
+ * instead of directly calling these functions.
+ */
+lwm2m_list_t * lwm2m_list_add(lwm2m_list_t * head, lwm2m_list_t * node);
+lwm2m_list_t * lwm2m_list_find(lwm2m_list_t * head, uint16_t id);
+lwm2m_list_t * lwm2m_list_remove(lwm2m_list_t * head, uint16_t id, lwm2m_list_t ** nodeP);
+uint16_t lwm2m_list_new_id(lwm2m_list_t * head);
 void lwm2m_list_free(lwm2m_list_t * head);
 
-#define LWM2M_LIST_ADD(H,N) lwm2m_list_add((lwm2m_list_t *)H, (lwm2m_list_t *)N);
-#define LWM2M_LIST_RM(H,I,N) lwm2m_list_remove((lwm2m_list_t *)H, I, (lwm2m_list_t **)N);
-#define LWM2M_LIST_FIND(H,I) lwm2m_list_find((lwm2m_list_t *)H, I)
-#define LWM2M_LIST_FREE(H) lwm2m_list_free((lwm2m_list_t *)H)
 
 /*
  * Helper functions for CoAP block size settings.
