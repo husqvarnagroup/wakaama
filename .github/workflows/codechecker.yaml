@@ -1,0 +1,30 @@
+name: Clang Static Analyzer
+
+on: [push, pull_request]
+
+jobs:
+  clang_static_analyzer:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code including full history and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - name: Install CodeChecker
+      run:  |
+        sudo apt-get update
+        sudo apt-get install clang-tools-14 cmake cppcheck libcunit1-dev ninja-build unzip wget
+        pip3 install codechecker
+
+    - name: Run CodeChecker
+      run: |
+        run: tools/ci/run_ci.sh --run-build --run-code-checker
+
+    - name: Upload CodeChecker reports
+      uses: actions/upload-artifact@v1
+      with:
+        name: CodeChecker Reports
+        path: build-wakaama/codechecker_report

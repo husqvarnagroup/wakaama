@@ -30,6 +30,7 @@ OPT_SCAN_BUILD=""
 OPT_SONARQUBE=""
 OPT_SOURCE_DIRECTORY="${REPO_ROOT_DIR}"
 OPT_TEST_COVERAGE_REPORT=""
+OPT_CODE_CHECKER="full"
 OPT_VERBOSE=0
 OPT_WRAPPER_CMD=""
 RUN_BUILD=0
@@ -39,6 +40,7 @@ RUN_CMAKE_FORMAT=0
 RUN_GITLINT=0
 RUN_GIT_BLAME_IGNORE=0
 RUN_TESTS=0
+RUN_CODE_CHECKER=0
 
 HELP_MSG="usage: ${SCRIPT_NAME} <OPTIONS>...
 Runs build and test steps in CI.
@@ -67,6 +69,9 @@ Options:
                             (WRAPPER: path to build-wrapper)
   --test-coverage REPORT    Enable code coverage measurement, output REPORT
                             (REPORT: xml html text none)
+  --code-checker ACTION     Run the CodeChecker code analyzer to create a baseline,
+                            do a full check or a PR check (show just difference to baseline)
+                            (TYPE: full, pr, baseline)
   -v, --verbose             Verbose output
   -a, --all                 Run all steps required for a MR
   -h, --help                Display this help and exit
@@ -79,6 +84,7 @@ Available steps (executed by --all):
   --run-cmake-format       Check CMake files formatting
   --run-build              Build all targets
   --run-tests              Execute tests (works only for top level project)
+  --run-code-checker       Run the CodeChecker code analyzer
 "
 
 function usage() {
@@ -212,6 +218,42 @@ function run_tests() {
   echo Coverage file "${gcovr_file[@]}" ready
 }
 
+function run_code_checker() {
+  readonly config_file="${REPO_ROOT_DIR}/tools/code_checker/config.json"
+  readonly ignore_file="${REPO_ROOT_DIR}/tools/code_checker/ignore.txt"
+  readonly baseline_file="${REPO_ROOT_DIR}/tools/code_checker/reports.baseline"
+  readonly code_checker_result_dir="build-wakaama/code_checker_result/"
+  readonly code_checker_report="build-wakaama/code_checker_report/"
+
+  CodeChecker check --logfile build-wakaama/compile_commands.json \
+                    --config "$config_file" \
+                    --ignore "$ignore_file" \
+                    --output $code_checker_result_dir \
+                    || true  # Currently failing with found issues
+
+
+  if [ "${OPT_CODE_CHECKER}" = "pr" ]; then
+    CodeChecker cmd diff -b "$baseline_file" \
+                         -n $code_checker_result_dir \
+                         --new
+  else
+    if [ "${OPT_CODE_CHECKER}" = "baseline" ]; then
+      output_format="baseline"
+      output_location="$baseline_file"
+    else
+      output_format="html"
+      output_location="$code_checker_report"
+    fi
+
+    CodeChecker parse -e "$output_format" \
+                      -o "$output_location" \
+                      --config "$config_file" \
+                      --ignore "$ignore_file" \
+                      --trim-path-prefix="${REPO_ROOT_DIR}" \
+                      "$code_checker_result_dir"
+    fi
+}
+
 # Parse Options
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -242,11 +284,13 @@ if ! PARSED_OPTS=$($getopt -o vah \
                           -l run-gitlint \
                           -l run-git-blame-ignore \
                           -l run-tests \
+                          -l run-code-checker \
                           -l sanitizer: \
                           -l scan-build: \
                           -l sonarqube: \
                           -l source-directory: \
                           -l test-coverage: \
+                          -l code-checker: \
                           -l verbose \
                           --name "${SCRIPT_NAME}" -- "$@");
 then
@@ -305,6 +349,12 @@ while true; do
       RUN_TESTS=1
       shift
       ;;
+    --run-code-checker)
+      RUN_CODE_CHECKER=1
+      # Analyzing works only when code gets actually built
+      RUN_CLEAN=1
+      shift
+      ;;
     --sanitizer)
       OPT_SANITIZER=$2
       shift 2
@@ -327,6 +377,10 @@ while true; do
       ;;
     --test-coverage)
       OPT_TEST_COVERAGE_REPORT=$2
+      shift 2
+      ;;
+    --code-checker)
+      OPT_CODE_CHECKER=$2
       shift 2
       ;;
     --)
@@ -383,6 +437,11 @@ if [ -n "${OPT_SCAN_BUILD}" ] && [ -n "${OPT_SONARQUBE}" ]; then
   exit 1
 fi
 
+if [ "${RUN_CODE_CHECKER}" = "1" ] && [ -n "${OPT_SONARQUBE}" ]; then
+  echo "--sonarqube and --code-checker can not be enabled at the same time"
+  exit 1
+fi
+
 if [ -n "${OPT_SONARQUBE}" ]; then
   OPT_TEST_COVERAGE_REPORT="${OPT_TEST_COVERAGE_REPORT:-none}"
   OPT_WRAPPER_CMD="${OPT_SONARQUBE} \
@@ -401,6 +460,10 @@ if [ -n "${OPT_SCAN_BUILD}" ]; then
     -o build-wakaama/clang-static-analyzer \
     --exclude tests \
     --exclude examples/shared/tinydtls"
+fi
+
+if [ "${RUN_CODE_CHECKER}" = "1" ]; then
+  CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug"
 fi
 
 # Run Steps
@@ -431,4 +494,8 @@ fi
 
 if [ "${RUN_TESTS}" -eq 1 ]; then
   run_tests
+fi
+
+if [ "${RUN_CODE_CHECKER}" = "1" ]; then
+  run_code_checker
 fi
