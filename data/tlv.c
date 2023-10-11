@@ -19,11 +19,12 @@
  *******************************************************************************/
 
 #include "internals.h"
+#include "logging.h"
+#include <float.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <inttypes.h>
-#include <float.h>
 
 #ifdef LWM2M_SUPPORT_TLV
 

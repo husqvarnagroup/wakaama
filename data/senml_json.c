@@ -17,12 +17,12 @@
  *******************************************************************************/
 
 #include "internals.h"
+#include "logging.h"
 #include <ctype.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <inttypes.h>
-
 
 #ifdef LWM2M_SUPPORT_SENML_JSON
 

@@ -17,6 +17,7 @@
  *******************************************************************************/
 
 #include "internals.h"
+#include "logging.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

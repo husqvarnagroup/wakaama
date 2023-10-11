@@ -19,6 +19,7 @@
  *******************************************************************************/
 
 #include "internals.h"
+#include "logging.h"
 #include <float.h>
 
 #define _PRV_STR_LENGTH 32

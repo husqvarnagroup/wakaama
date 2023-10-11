@@ -106,7 +106,7 @@ Contains code snippets which are:
  */
 
 #include "internals.h"
-
+#include "logging.h"
 
 /*
  * Modulo mask (+1 and +0.5 for rounding) for a random number to get the tick number for the random

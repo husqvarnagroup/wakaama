@@ -50,6 +50,7 @@
 */
 
 #include "internals.h"
+#include "logging.h"
 #include <stdio.h>
 
 

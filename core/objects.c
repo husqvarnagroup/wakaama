@@ -51,6 +51,7 @@
 
 */
 #include "internals.h"
+#include "logging.h"
 
 #ifdef LWM2M_CLIENT_MODE
 

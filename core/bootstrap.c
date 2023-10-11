@@ -20,10 +20,11 @@
  *******************************************************************************/
 
 #include "internals.h"
+#include "logging.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #ifdef LWM2M_CLIENT_MODE
 #ifdef LWM2M_BOOTSTRAP

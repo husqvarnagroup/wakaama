@@ -50,9 +50,10 @@
 */
 
 #include "internals.h"
+#include "logging.h"
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 static int prv_parseNumber(uint8_t * uriString,
                             size_t uriLength,

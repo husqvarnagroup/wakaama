@@ -17,6 +17,7 @@
  *******************************************************************************/
 
 #include "internals.h"
+#include "logging.h"
 
 #define PRV_LINK_BUFFER_SIZE  1024
 
