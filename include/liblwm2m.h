@@ -674,13 +674,13 @@ typedef struct
  *
  */
 
-typedef struct _lwm2m_client_object_
-{
-    struct _lwm2m_client_object_ * next; // matches lwm2m_list_t::next
-    uint16_t                 id;         // matches lwm2m_list_t::id
-    uint8_t                  versionMajor;
-    uint8_t                  versionMinor;
-    lwm2m_list_t *           instanceList;
+typedef struct _lwm2m_client_object_ {
+    struct _lwm2m_client_object_ *next; // matches lwm2m_list_t::next
+    uint16_t id;                        // matches lwm2m_list_t::id
+    uint8_t versionMajor;
+    uint8_t versionMinor;
+    bool versionValid;
+    lwm2m_list_t *instanceList;
 } lwm2m_client_object_t;
 
 typedef struct _lwm2m_client_
