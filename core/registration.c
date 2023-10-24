@@ -1461,6 +1461,18 @@ static int prv_parseLinkAttributes(uint8_t * data,
     return 1;
 }
 
+/**
+ *
+ * @param data
+ * @param length
+ * @param objId
+ * @param instanceId
+ * @param versionMajor
+ * @param versionMinor
+ * @return 0 on error
+ *         1 found an object, with or without version attribute
+ *         2 found an object with an instance
+ */
 static int prv_getId(uint8_t * data,
                      uint16_t length,
                      uint16_t * objId,
@@ -1471,9 +1483,7 @@ static int prv_getId(uint8_t * data,
     int value;
     uint16_t limit;
     int result = 1;
-
-    *versionMajor = 0;
-    *versionMinor = 0;
+    bool obj_version_seen = false;
 
     // Expecting application/link-format (RFC6690)
     // leading space were removed before. Remove trailing spaces.
@@ -1496,6 +1506,7 @@ static int prv_getId(uint8_t * data,
     if (value < 0 || value >= LWM2M_MAX_ID) return 0;
     *objId = value;
 
+    /* Check if the object has an instance */
     if (data[limit] == '/')
     {
         limit += 1;
@@ -1548,8 +1559,7 @@ static int prv_getId(uint8_t * data,
                     uint16_t limit2;
                     uint16_t extra = 0;
 
-                    if(*versionMajor != 0 || *versionMinor != 0)
-                    {
+                    if (obj_version_seen) {
                         // Already seen
                         *versionMajor = 0;
                         *versionMinor = 0;
@@ -1602,6 +1612,7 @@ static int prv_getId(uint8_t * data,
                         return 0;
                     }
                     *versionMinor = val;
+                    obj_version_seen = true;
                     limit += extra;
                 }
                 // Ignore any unrecognized attribute
@@ -1618,8 +1629,35 @@ static int prv_getId(uint8_t * data,
     return result;
 }
 
+/**
+ * Set default object version according to LwM2M client version.
+ * Note: Does not support LwM2M version 1.2 default object version handling.
+ * @param version
+ * @param versionMajor
+ * @param versionMinor
+ */
+static void set_default_object_version(const lwm2m_version_t version, lwm2m_client_object_t *object) {
+    switch (version) {
+    case VERSION_1_0:
+        object->versionMajor = 1;
+        object->versionMinor = 0;
+        break;
+    case VERSION_1_1:
+        object->versionMajor = 1;
+        object->versionMinor = 1;
+        break;
+    default:
+        object->versionMajor = 0;
+        object->versionMinor = 0;
+        break;
+    }
+
+    object->versionValid = true;
+}
+
 static lwm2m_client_object_t *prv_decodeRegisterPayload(uint8_t *payload, size_t payloadLength,
-                                                        lwm2m_media_type_t *format, char **altPath) {
+                                                        const lwm2m_version_t version, lwm2m_media_type_t *format,
+                                                        char **altPath) {
     size_t index;
     lwm2m_client_object_t * objList;
     bool linkAttrFound;
@@ -1637,8 +1675,8 @@ static lwm2m_client_object_t *prv_decodeRegisterPayload(uint8_t *payload, size_t
         int result;
         uint16_t id;
         uint16_t instance;
-        uint8_t versionMajor;
-        uint8_t versionMinor;
+        uint8_t versionMajor = 0;
+        uint8_t versionMinor = 0;
 
         while (index < payloadLength && payload[index] == ' ') index++;
         if (index == payloadLength) break;
@@ -1665,10 +1703,15 @@ static lwm2m_client_object_t *prv_decodeRegisterPayload(uint8_t *payload, size_t
             {
                 objectP->versionMajor = versionMajor;
                 objectP->versionMinor = versionMinor;
+                objectP->versionValid = true;
             }
             else
             {
                 lwm2m_list_t * instanceP;
+
+                if (!objectP->versionValid) {
+                    set_default_object_version(version, objectP);
+                }
 
                 instanceP = lwm2m_list_find(objectP->instanceList, instance);
                 if (instanceP == NULL)
@@ -1802,7 +1845,7 @@ uint8_t  registration_handleRequest(lwm2m_context_t * contextP,
             return COAP_400_BAD_REQUEST;
         }
 
-        objects = prv_decodeRegisterPayload(message->payload, message->payload_len, &format, &altPath);
+        objects = prv_decodeRegisterPayload(message->payload, message->payload_len, version, &format, &altPath);
 
         if (!LWM2M_URI_IS_SET_OBJECT(uriP))
         {
