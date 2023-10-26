@@ -87,6 +87,7 @@ Contains code snippets which are:
 
 
 #include "internals.h"
+#include "message_dedup.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -495,6 +496,12 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
         LOG_ARG("Parsed: ver %u, type %u, tkl %u, code %u.%.2u, mid %u, Content type: %d",
                 message->version, message->type, message->token_len, message->code >> 5, message->code & 0x1F, message->mid, message->content_type);
         LOG_ARG("Payload: %.*s", message->payload_len, STR_NULL2EMPTY(message->payload));
+
+        if (coap_check_message_duplication(&contextP->message_dedup, message->mid, fromSessionH)) {
+            LOG("Warning: Message already seen in transmission window");
+            return;
+        }
+
         if (message->code >= COAP_GET && message->code <= COAP_DELETE)
         {
             uint32_t block_num = 0;
@@ -889,4 +896,3 @@ uint8_t message_send(lwm2m_context_t * contextP,
 
     return result;
 }
-
