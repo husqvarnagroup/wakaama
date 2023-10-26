@@ -65,6 +65,17 @@ set(WAKAAMA_COAP_SEPARATE_TIMEOUT
     CACHE STRING "CoAP separate response timeout; Used if not set on a per-target basis"
 )
 
+# EXCHANGE_LIFETIME https://datatracker.ietf.org/doc/html/rfc7252#section-4.8.2 "The time from starting to send a
+# Confirmable message to the time when an acknowledgement is no longer expected." Also used as the time to block message
+# ids from a client to prevent receiving duplicate packets. Defaults to 247s with default parameters according to
+# rfc7252.
+set(WAKAAMA_COAP_MESSAGE_EXCHANGE_LIFETIME
+    247
+    CACHE
+        STRING
+        "The time from starting to send a Confirmable message to the time when an acknowledgement is no longer expected"
+)
+
 # Logging
 set(WAKAAMA_LOG_LEVEL
     LOG_DISABLED
@@ -169,6 +180,10 @@ function(set_coap_defines)
     target_compile_definitions(${target} PUBLIC LWM2M_COAP_MAX_MESSAGE_SIZE=${WAKAAMA_COAP_MAX_MESSAGE_SIZE})
 
     target_compile_definitions(
+        ${target} PUBLIC LWM2M_COAP_MESSAGE_EXCHANGE_LIFETIME=${WAKAAMA_COAP_MESSAGE_EXCHANGE_LIFETIME}
+    )
+
+    target_compile_definitions(
         ${target} PUBLIC LWM2M_COAP_DEFAULT_MAX_RETRANSMIT=${WAKAAMA_COAP_DEFAULT_MAX_RETRANSMIT}
     )
 
@@ -220,7 +235,7 @@ function(target_sources_coap target)
     target_sources(
         ${target}
         PRIVATE ${WAKAAMA_TOP_LEVEL_DIRECTORY}/coap/block.c ${WAKAAMA_TOP_LEVEL_DIRECTORY}/coap/er-coap-13/er-coap-13.c
-                ${WAKAAMA_TOP_LEVEL_DIRECTORY}/coap/transaction.c
+                ${WAKAAMA_TOP_LEVEL_DIRECTORY}/coap/message_dedup.c ${WAKAAMA_TOP_LEVEL_DIRECTORY}/coap/transaction.c
     )
     # We should not (have to) do this!
     target_include_directories(${target} PRIVATE ${WAKAAMA_TOP_LEVEL_DIRECTORY}/coap)
