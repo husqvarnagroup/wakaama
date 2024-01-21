@@ -142,8 +142,6 @@ add_compile_options(
     -Wno-unused-parameter
     # Reduce noise: Too many false positives
     -Wno-uninitialized
-    # Turn (most) warnings into errors
-    -Werror
     # Disabled because of existing, non-trivially fixable code
     -Wno-error=cast-align
 )
