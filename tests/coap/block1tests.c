@@ -16,7 +16,7 @@
  *
  *******************************************************************************/
 
-#include "tests.h"
+#include "../framework/tests.h"
 #include "CUnit/Basic.h"
 #include "internals.h"
 #include "liblwm2m.h"

@@ -27,10 +27,10 @@
  * BLOCK_OPTION:NUM/MORE/SIZE
  */
 
+#include "../framework/tests.h"
 #include "CUnit/Basic.h"
 #include "internals.h"
 #include "liblwm2m.h"
-#include "tests.h"
 
 /*
 CLIENT                                                     SERVER

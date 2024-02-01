@@ -16,9 +16,9 @@
  *
  *******************************************************************************/
 
+#include "../framework/tests.h"
 #include "CUnit/CUnit.h"
 #include "liblwm2m.h"
-#include "tests.h"
 
 typedef struct list_node_ {
     struct list_node_ *next; // matches lwm2m_list_t::next

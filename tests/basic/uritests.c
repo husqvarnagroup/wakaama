@@ -15,10 +15,9 @@
  *
  *******************************************************************************/
 
-#include "tests.h"
+#include "../framework/tests.h"
 #include "CUnit/Basic.h"
 #include "internals.h"
-
 
 static void test_uri_decode(void)
 {

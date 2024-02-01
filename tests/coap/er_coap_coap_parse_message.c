@@ -1,7 +1,7 @@
 #include "er-coap-13/er-coap-13.h"
 #include "liblwm2m.h"
 
-#include "tests.h"
+#include "../framework/tests.h"
 
 static coap_packet_t coap_pkt;
 

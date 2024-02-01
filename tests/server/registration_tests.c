@@ -16,12 +16,12 @@
  *
  *******************************************************************************/
 
+#include "../framework/tests.h"
 #include "CUnit/CUnit.h"
 #include "connection.h"
 #include "er-coap-13/er-coap-13.h"
 #include "internals.h"
 #include "liblwm2m.h"
-#include "tests.h"
 
 #include <string.h>
 

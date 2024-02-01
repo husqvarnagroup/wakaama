@@ -28,8 +28,8 @@
 
 #include "commandline.h"
 
+#include "../framework/tests.h"
 #include "CUnit/Basic.h"
-#include "tests.h"
 
 #ifdef LWM2M_SUPPORT_SENML_CBOR
 

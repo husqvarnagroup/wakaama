@@ -28,7 +28,7 @@
 
 #include "commandline.h"
 
-#include "tests.h"
+#include "../framework/tests.h"
 #include "CUnit/Basic.h"
 
 #ifdef LWM2M_SUPPORT_SENML_JSON

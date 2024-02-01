@@ -6,20 +6,20 @@ include(../wakaama.cmake)
 include(tests.cmake)
 
 set(TEST_SOURCES
-    block1tests.c
-    block2tests.c
-    cbor_tests.c
-    convert_numbers_test.c
-    er_coap_coap_parse_message.c
-    registration_tests.c
-    list_tests.c
-    senml_json_tests.c
-    senml_cbor_tests.c
-    tests.h
-    tlv_json_lwm2m_data_test.c
-    tlvtests.c
-    unittests.c
-    uritests.c
+    basic/convert_numbers_test.c
+    basic/list_tests.c
+    basic/uritests.c
+    coap/block1tests.c
+    coap/block2tests.c
+    coap/er_coap_coap_parse_message.c
+    data/cbor_tests.c
+    data/senml_cbor_tests.c
+    data/senml_json_tests.c
+    data/tlv_json_lwm2m_data_test.c
+    data/tlvtests.c
+    framework/tests.h
+    framework/unittests.c
+    server/registration_tests.c
 )
 
 add_test_variant(

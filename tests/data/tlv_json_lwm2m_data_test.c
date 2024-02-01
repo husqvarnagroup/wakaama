@@ -27,7 +27,7 @@
 
 #include "commandline.h"
 
-#include "tests.h"
+#include "../framework/tests.h"
 #include "CUnit/Basic.h"
 
 static void test_data(const char * uriStr,
