@@ -12,6 +12,7 @@ set(TEST_SOURCES
     convert_numbers_test.c
     er_coap_coap_parse_message.c
     registration_tests.c
+    registry_tests.c
     list_tests.c
     logging_tests.c
     senml_json_tests.c

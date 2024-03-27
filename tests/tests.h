@@ -31,6 +31,7 @@ CU_ErrorCode add_tests(CU_pSuite pSuite, struct TestTable* testTable);
 CU_ErrorCode create_uri_suit(void);
 CU_ErrorCode create_tlv_suit(void);
 CU_ErrorCode create_object_read_suit(void);
+CU_ErrorCode create_registry_test_suit(void);
 CU_ErrorCode create_convert_numbers_suit(void);
 CU_ErrorCode create_tlv_json_suit(void);
 CU_ErrorCode create_block1_suit(void);
