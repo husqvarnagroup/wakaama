@@ -33,6 +33,7 @@ CU_ErrorCode create_uri_suit(void);
 CU_ErrorCode create_tlv_suit(void);
 #endif
 CU_ErrorCode create_object_read_suit(void);
+CU_ErrorCode create_registry_test_suit(void);
 CU_ErrorCode create_convert_numbers_suit(void);
 #ifdef LWM2M_SUPPORT_TLV
 CU_ErrorCode create_tlv_json_suit(void);
