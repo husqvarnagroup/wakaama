@@ -71,7 +71,7 @@ void free_object_definition(lwm2m_object_definition_t *def) {
     while (next != NULL) {
         lwm2m_free(next->name);
         lwm2m_free(next->urn);
-        //lwm2m_object_resources_free(next->resources);
+        lwm2m_object_resources_free(next->resources);
         next = next->next;
     }
     LWM2M_LIST_FREE(def);
@@ -121,7 +121,12 @@ void lwm2m_add_object_resource(lwm2m_object_definition_t* obj,
     res->mandatory = mandatory;
     res->type = type;
 
-    LWM2M_LIST_ADD(obj->resources, res);
+    if (obj->resources == NULL) {
+        obj->resources = res;
+    }
+    else {
+        LWM2M_LIST_ADD(obj->resources, res);
+    }
 }
 
 
