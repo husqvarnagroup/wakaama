@@ -385,6 +385,7 @@ typedef enum
     LWM2M_TYPE_UNSIGNED_INTEGER,
     LWM2M_TYPE_FLOAT,
     LWM2M_TYPE_BOOLEAN,
+    LWM2M_TYPE_TIME,
 
     LWM2M_TYPE_OBJECT_LINK,
     LWM2M_TYPE_CORE_LINK
@@ -961,6 +962,80 @@ typedef enum {
  * This function should not be called directly. Use the logging macros instead. */
 void lwm2m_log_handler(lwm2m_logging_level_t level, const char *const msg, const char *const func, const int line,
                        const char *const file);
+
+
+
+/* LwM2M Object registry */
+
+/** Allowed operation of an LwM2M object resource. */
+typedef enum _lwm2m_resource_operations_ {
+    LWM2M_RESOURCES_OPERATIONS_READ,
+    LWM2M_RESOURCES_OPERATIONS_WRITE,
+    LWM2M_RESOURCES_OPERATIONS_READ_WRITE,
+    LWM2M_RESOURCES_OPERATIONS_EXECUTE,
+    LWM2M_RESOURCES_OPERATIONS_NONE,
+} lwm2m_resource_operations_t;
+
+
+/** Data of a LwM2M object resource. */
+typedef struct _lwm2m_object_definition_resource_
+{
+    struct _lwm2m_object_definition_resource_ * next;  // matches lwm2m_list_t::next
+    uint16_t               id;    // matches lwm2m_list_t::id
+    char *     name;
+    lwm2m_resource_operations_t operations;
+    bool multi_inst;
+    bool mandatory;
+    lwm2m_data_type_t type;
+    char * description;
+    //char * range_enumeration;
+    //char * units;
+} lwm2m_object_definition_resource_t;
+
+/** Version of an LwM2M object. */
+typedef struct _lwm2m_object_version_ {
+    uint8_t        major;
+    uint8_t        minor;
+} lwm2m_object_version_t;
+
+/** Data of an LwM2M object. */
+typedef struct _lwm2m_object_definition_ {
+    struct _lwm2m_object_definition_ * next;  // matches lwm2m_list_t::next
+    uint16_t               obj_id;    // matches lwm2m_list_t::id
+    char * name;
+    char * description1;
+    char * description2;
+    char * object_urn;
+    lwm2m_version_t  lwm2m_version;
+    lwm2m_object_version_t object_version;
+    bool multi_instances;
+    bool            mandatory;
+    lwm2m_object_definition_resource_t * resources;
+} lwm2m_object_definition_t;
+
+/** Initialize a new LwM2M object with the given data. */
+void lwm2m_registry_init_object(lwm2m_object_definition_t* obj,
+                                const uint16_t obj_id,
+                                const char * const name,
+                                const char * const urn,
+                                const lwm2m_version_t lwm2m_version,
+                                const uint8_t object_version_major,
+                                const uint8_t object_version_minor,
+                                const bool multi_instances,
+                                const bool mandatory);
+
+
+/** Add a resource LwM2M object */
+void lwm2m_registry_add_object_resource(lwm2m_object_definition_t* obj,
+                                        const uint16_t id,
+                                        const char * const name,
+                                        const lwm2m_resource_operations_t operations,
+                                        const bool multi_inst,
+                                        const bool mandatory,
+                                        const lwm2m_data_type_t type);
+
+/** @todo: this should probably not be public (introduce instead higher level func for complete registry) */
+void lwm2m_registry_free_object_definition(lwm2m_object_definition_t *def);
 
 #ifdef __cplusplus
 }
