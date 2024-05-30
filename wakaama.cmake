@@ -93,7 +93,7 @@ function(target_sources_wakaama target)
                 ${WAKAAMA_TOP_LEVEL_DIRECTORY}/core/uri.c
                 ${WAKAAMA_TOP_LEVEL_DIRECTORY}/core/utils.c
                 ${WAKAAMA_TOP_LEVEL_DIRECTORY}/core/object_registry.c
-                ${WAKAAMA_TOP_LEVEL_DIRECTORY}/object_registry/objects/security_1_1.c
+                ${WAKAAMA_TOP_LEVEL_DIRECTORY}/object_registry/objects/static_objects.c
     )
 
     target_include_directories(${target} PRIVATE ${WAKAAMA_TOP_LEVEL_DIRECTORY}/include)
