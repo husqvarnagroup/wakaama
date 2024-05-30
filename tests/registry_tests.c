@@ -20,53 +20,27 @@
 #include "liblwm2m.h"
 #include "tests.h"
 
-static void create_security_object(lwm2m_object_definition_t* sec_obj) {
-    lwm2m_registry_init_object(sec_obj,
-                      0,
-                      "LWM2M Security",
-                      "urn:oma:lwm2m:oma:0:1.1",
-                      VERSION_1_1,
-                      1,
-                      1,
-                      false,
-                      true);
+// TODO remove!
+lwm2m_object_definition_list_t* lwm2m_registry_initialize(void);
 
-    /* Resources */
-    lwm2m_registry_add_object_resource(sec_obj,
-                              0,
-                              "LWM2M Server URI",
-                              LWM2M_RESOURCES_OPERATIONS_WRITE,
-                              false,
-                              true,
-                              LWM2M_TYPE_STRING);
-}
+static void test_security_object(void) {
+    lwm2m_object_definition_list_t *list = lwm2m_registry_initialize();
+    lwm2m_object_definition_t* sec_obj = list->object;
 
 
-typedef struct _lwm2m_object_registry_ {
-    struct _lwm2m_object_registry_ *next; // matches lwm2m_list_t::next
-    uint16_t id;                          // matches lwm2m_list_t::id
-    lwm2m_object_definition_t *registry;
-} lwm2m_object_registry_t;
+    CU_ASSERT_STRING_EQUAL(sec_obj->name, "LWM2M Security");
+    CU_ASSERT_EQUAL(sec_obj->obj_id, 0);
+    lwm2m_object_version_t obj_version = sec_obj->object_version;
+    CU_ASSERT_EQUAL(obj_version.major, 1);
+    CU_ASSERT_EQUAL(obj_version.minor, 1);
+    CU_ASSERT_EQUAL(sec_obj->lwm2m_version, VERSION_1_1);
 
-
-static lwm2m_object_registry_t* object_registries = NULL;
-
-void lwm2m_add_registry(lwm2m_object_registry_t *registry) {
-    uint16_t id = lwm2m_list_newId((lwm2m_list_t *)object_registries);
-    registry->id = id;
-
-    LWM2M_LIST_ADD(object_registries, registry);
-}
-
-static void test_registry(void) {
-    lwm2m_object_definition_t *sec_obj = lwm2m_malloc(sizeof (lwm2m_object_definition_t));
-    create_security_object(sec_obj);
-    lwm2m_registry_free_object_definition(sec_obj);
+    lwm2m_registry_free_object_definitions(list);
 }
 
 
 static struct TestTable table[] = {
-    {"test_registry", test_registry},
+    {"test_security_object", test_security_object},
     {NULL, NULL},
 };
 

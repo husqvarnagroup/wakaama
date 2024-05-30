@@ -1000,7 +1000,6 @@ typedef struct _lwm2m_object_version_ {
 
 /** Data of an LwM2M object. */
 typedef struct _lwm2m_object_definition_ {
-    struct _lwm2m_object_definition_ * next;  // matches lwm2m_list_t::next
     uint16_t               obj_id;    // matches lwm2m_list_t::id
     char * name;
     char * description1;
@@ -1012,6 +1011,24 @@ typedef struct _lwm2m_object_definition_ {
     bool            mandatory;
     lwm2m_object_definition_resource_t * resources;
 } lwm2m_object_definition_t;
+
+/* separate list type for reasons:
+ * - id doesn't match object id (multiple ids in different versions possible)
+ * - an object definition can be part of different lists and have different list IDs (e.g. search results) */
+typedef struct _lwm2m_object_definition_list_ {
+    struct _lwm2m_object_definition_list_ *next; // matches lwm2m_list_t::next
+    uint16_t id;                                 // matches lwm2m_list_t::id (not the ID of object!)
+    lwm2m_object_definition_t *object;
+} lwm2m_object_definition_list_t;
+
+
+/* TODO: An application can support multiple registries */
+typedef struct _lwm2m_object_registry_ {
+    struct _lwm2m_object_registry_ *next; // matches lwm2m_list_t::next
+    uint16_t id;                          // matches lwm2m_list_t::id
+    lwm2m_object_definition_list_t *registry;
+} lwm2m_object_registry_t;
+
 
 /** Initialize a new LwM2M object with the given data. */
 void lwm2m_registry_init_object(lwm2m_object_definition_t* obj,
@@ -1035,7 +1052,7 @@ void lwm2m_registry_add_object_resource(lwm2m_object_definition_t* obj,
                                         const lwm2m_data_type_t type);
 
 /** @todo: this should probably not be public (introduce instead higher level func for complete registry) */
-void lwm2m_registry_free_object_definition(lwm2m_object_definition_t *def);
+void lwm2m_registry_free_object_definitions(lwm2m_object_definition_list_t *def);
 
 #ifdef __cplusplus
 }
