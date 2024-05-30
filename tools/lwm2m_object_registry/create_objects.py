@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
+import glob
 import os
-import pathlib
+import sys
+from dataclasses import dataclass
 from pathlib import Path
 from textwrap import indent
 import xml.etree.ElementTree as ET
+from typing import List
+
+
+script_dir = Path(__file__).parent
+repo_base_dir = script_dir / "../.."
+script_name = Path(__file__).name
 
 
 def convert_lwm2m_version_to_enum(lwm2m_version):
@@ -65,16 +73,7 @@ def object_version_tuple(lwm2m_object):
     return object_version_major, object_version_minor
 
 
-def generate_object_code(lwm2m_object):
-    assert lwm2m_object.tag == "Object"
-    object_id = lwm2m_object.find("ObjectID").text
-    object_name = f'"{lwm2m_object.find("Name").text}"'
-    object_urn = f'"{lwm2m_object.find("ObjectURN").text}"'
-    lwm2m_version = lwm2m_object.find("LWM2MVersion").text
-    object_version_major, object_version_minor = object_version_tuple(lwm2m_object)
-
-    multiple_instances = lwm2m_object.find("MultipleInstances").text
-    mandatory = lwm2m_object.find("Mandatory").text
+def generate_object_code(object):
 
     code = ""
 
@@ -83,14 +82,14 @@ def generate_object_code(lwm2m_object):
 
     code += "lwm2m_registry_init_object(obj,\n"
     init_func_args = [
-        object_id ,
-        object_name,
-        object_urn,
-        convert_lwm2m_version_to_enum(lwm2m_version),
-        object_version_major,
-        object_version_minor,
-        convert_multiple_instances_to_bool(multiple_instances),
-        convert_mandatory_to_bool(mandatory)]
+        object.object_id ,
+        f'"{object.object_name}"',
+        f'"{object.object_urn}"',
+        convert_lwm2m_version_to_enum(object.lwm2m_version),
+        object.object_version_major,
+        object.object_version_minor,
+        convert_multiple_instances_to_bool(object.multiple_instances),
+        convert_mandatory_to_bool(object.mandatory)]
 
     init_func_args_code = ",\n".join(init_func_args)
     init_func_args_code = indent(init_func_args_code, "\t")
@@ -101,31 +100,20 @@ def generate_object_code(lwm2m_object):
 
 
 def generate_resource_code(resources):
-    assert resources.tag == "Resources"
     code = ""
     for res in resources:
-        assert res.tag == "Item"
-
-        resource_id = res.get("ID")
-        resource_name = res.find("Name").text
-        resource_name = f'"{resource_name}"'
-        operations = res.find("Operations").text
-        multiple_instances = res.find("MultipleInstances").text
-        mandatory = res.find("Mandatory").text
-        resource_type = res.find("Type").text
-
-        code += f"\n\n/* Resource: {resource_name} */\n"
+        code += f'\n\n/* Resource: "{res.resource_name}" */\n'
         code += "lwm2m_registry_add_object_resource(obj,\n"
 
-        resouce_funct_args = [
-            resource_id,
-            resource_name,
-            convert_resource_operations_to_enum(operations),
-            convert_multiple_instances_to_bool(multiple_instances),
-            convert_mandatory_to_bool(mandatory),
-            convert_resource_type_to_enum(resource_type)
+        resource_funct_args = [
+            res.resource_id,
+            f'"{res.resource_name}"',
+            convert_resource_operations_to_enum(res.operations),
+            convert_multiple_instances_to_bool(res.multiple_instances),
+            convert_mandatory_to_bool(res.mandatory),
+            convert_resource_type_to_enum(res.resource_type)
         ]
-        args_code = ",\n".join(resouce_funct_args)
+        args_code = ",\n".join(resource_funct_args)
         args_code = indent(args_code, "\t")
 
         code += args_code
@@ -134,29 +122,26 @@ def generate_resource_code(resources):
     return code
 
 
-def object_creation_function_comment(lwm2m_object):
-    object_name = f'"{lwm2m_object.find("Name").text}"'
-    object_id = lwm2m_object.find("ObjectID").text
-    object_version_major, object_version_minor = object_version_tuple(lwm2m_object)
-    return f"/* {object_name} ({object_id}:{object_version_major}.{object_version_minor}) */"
+def object_creation_function_comment(object):
+    return (f'/* "{object.object_name}" '
+            f"({object.object_id}:{object.object_version_major}.{object.object_version_minor}) */")
 
 
-def object_creation_function_name(lwm2m_object):
-    object_id = lwm2m_object.find("ObjectID").text
-    object_version_major, object_version_minor = object_version_tuple(lwm2m_object)
-    return f"create_object_{object_id}_version_{object_version_major}_{object_version_minor}"
+def object_creation_function_name(object):
+    return (f"create_object_{object.object_id}_version_"
+            f"{object.object_version_major}_{object.object_version_minor}")
 
 
-def generate_object_creation_function(lwm2m_object):
+def generate_object_creation_function(object):
 
-    code = object_creation_function_comment(lwm2m_object) + "\n"
+    code = object_creation_function_comment(object) + "\n"
 
     code += (f"static lwm2m_object_definition_t* "
-             f"{object_creation_function_name(lwm2m_object)}(void)\n")
+             f"{object_creation_function_name(object)}(void)\n")
 
     code += "{\n"
-    code += indent(generate_object_code(lwm2m_object), "\t");
-    code += indent(generate_resource_code(lwm2m_object.find("Resources")), "\t")
+    code += indent(generate_object_code(object), "\t");
+    code += indent(generate_resource_code(object.resources), "\t")
 
     code += indent("\nreturn obj;", '\t')
 
@@ -165,15 +150,15 @@ def generate_object_creation_function(lwm2m_object):
     return code
 
 
-def generate_public_registry_initialization_function(lwm2m_object):
+def generate_public_registry_initialization_function(object):
     code = "lwm2m_object_definition_list_t* lwm2m_registry_initialize(void)\n"
     code += "{\n"
 
     body = "lwm2m_object_definition_list_t * head = lwm2m_malloc(sizeof(lwm2m_object_definition_list_t));\n"
     body += "memset(head, 0, sizeof(lwm2m_object_definition_list_t));\n\n"
 
-    body += object_creation_function_comment(lwm2m_object) + "\n"
-    body += f"head->object = {object_creation_function_name(lwm2m_object)}();\n\n"
+    body += object_creation_function_comment(object) + "\n"
+    body += f"head->object = {object_creation_function_name(object)}();\n\n"
 
     body += "return head;\n"
 
@@ -183,26 +168,123 @@ def generate_public_registry_initialization_function(lwm2m_object):
     return code
 
 
-script_dir = pathlib.Path(__file__).parent
-repo_base_dir = script_dir / "../.."
 
-definition_xml = repo_base_dir / "resources/object_definitions/0-1_1.xml"
+# DTOs
 
-tree = ET.parse(definition_xml)
-root = tree.getroot()
-assert root.tag == "LWM2M"
 
-lwm2m_object = root.find("Object")
+@dataclass
+class Lwm2mObjectResource:
+    resource_id: int
+    resource_name: str
+    operations: str
+    multiple_instances: str
+    mandatory: str
+    resource_type: str
 
-script_name = Path(__file__).name
-code = f"/* Generated by {script_name} */\n"
+    def __init__(self):
+        pass
 
-code += '#include "liblwm2m.h"\n#include <memory.h>\n\n'
 
-code += generate_object_creation_function(lwm2m_object)
+@dataclass
+class Lwm2mObject:
+    object_id: int
+    object_name: str
+    object_urn: str
+    lwm2m_version: str
+    object_version_major: int
+    object_version_minor: int
+    multiple_instances: str
+    mandatory: str
+    resources: List[Lwm2mObjectResource]
 
-code += generate_public_registry_initialization_function(lwm2m_object)
+    def __init__(self):
+        pass
 
+# Parsing
+
+def parse_all_files(dir):
+    files = glob.glob(f"{dir}/*.xml")
+    objects = []
+    for file in files:
+        objects.append(parse_file(file))
+    objects.sort(key=lambda obj: obj.object_id)
+    return objects
+
+
+def parse_file(definition_xml):
+    tree = ET.parse(definition_xml)
+    root = tree.getroot()
+    assert root.tag == "LWM2M"
+    object_tag = root.find("Object")
+
+    return parse_object(object_tag)
+
+
+def parse_object(object_tag):
+    assert object_tag.tag == "Object"
+    obj = Lwm2mObject()
+    obj.object_id = object_tag.find("ObjectID").text
+    obj.object_name = object_tag.find("Name").text
+    obj.object_urn = object_tag.find("ObjectURN").text
+    obj.lwm2m_version = object_tag.find("LWM2MVersion").text
+    obj.object_version_major, obj.object_version_minor = object_version_tuple(object_tag)
+
+    obj.multiple_instances = object_tag.find("MultipleInstances").text
+    obj.mandatory = object_tag.find("Mandatory").text
+
+    obj.resources = parse_resources(object_tag.find("Resources"))
+    obj.resources.sort(key=lambda res: res.resource_id)
+
+    return obj
+
+
+### Parse Resource
+
+def parse_resources(resources_tag):
+    resource_list = []
+    for item in resources_tag:
+        assert item.tag == "Item"
+
+        r = Lwm2mObjectResource()
+        r.resource_id = item.get("ID")
+        r.resource_name = item.find("Name").text
+        r.operations = item.find("Operations").text
+        r.multiple_instances = item.find("MultipleInstances").text
+        r.mandatory = item.find("Mandatory").text
+        r.resource_type = item.find("Type").text
+        resource_list.append(r)
+
+    return resource_list
+
+
+
+
+def parse_definitions_and_generate_code(definitions_directory):
+    objects = parse_all_files(definitions_directory)
+
+    code = f"/* Generated by {script_name} */\n"
+
+    code += '#include "liblwm2m.h"\n#include <memory.h>\n\n'
+
+    for obj in objects:
+
+        code += generate_object_creation_function(obj)
+
+        code += generate_public_registry_initialization_function(obj)
+
+    return code
+
+
+def main():
+    definitions_directory = repo_base_dir / "resources" / "object_definitions"
+    code = parse_definitions_and_generate_code(definitions_directory)
+    output_dir = repo_base_dir / "object_registry/objects"
+    os.makedirs(output_dir, exist_ok=True)
+    with open(output_dir / "lwm2m_objects.c", 'w') as o_file:
+        o_file.write(code)
+
+    #TODO Remove
+    return code
 
 
 
@@ -219,13 +301,9 @@ set_default_reporter(ReportWithVSCode())
 
 class GettingStartedTest(unittest.TestCase):
     def test_simple(self):
-        output_dir = repo_base_dir / "object_registry/objects"
-        os.makedirs(output_dir, exist_ok=True)
-        with open(output_dir / "security_1_1.c", 'w') as o_file:
-            o_file.write(code)
-
+        main()
         options = Options().for_file.with_extension(".c")
-        verify(code, options=options)
+        verify(main(), options=options)
 
 
 if __name__ == "__main__":
