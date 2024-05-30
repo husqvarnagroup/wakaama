@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+// TODO: static lwm2m_object_registry_t* object_registries = NULL;
 
 void lwm2m_object_resources_free(lwm2m_object_definition_resource_t *res) {
     lwm2m_object_definition_resource_t * next = res;
@@ -32,12 +33,13 @@ void lwm2m_object_resources_free(lwm2m_object_definition_resource_t *res) {
     LWM2M_LIST_FREE(res);
 }
 
-void lwm2m_registry_free_object_definition(lwm2m_object_definition_t *def) {
-    lwm2m_object_definition_t * next = def;
+void lwm2m_registry_free_object_definitions(lwm2m_object_definition_list_t *def) {
+    lwm2m_object_definition_list_t * next = def;
     while (next != NULL) {
-        lwm2m_free(next->name);
-        lwm2m_free(next->object_urn);
-        lwm2m_object_resources_free(next->resources);
+        lwm2m_free(next->object->name);
+        lwm2m_free(next->object->object_urn);
+        lwm2m_object_resources_free(next->object->resources);
+        lwm2m_free(next->object);
         next = next->next;
     }
     LWM2M_LIST_FREE(def);
