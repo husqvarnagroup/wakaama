@@ -43,13 +43,15 @@ void coap_cleanup_message_deduplication_step(coap_msg_dedup_t **message_dedup, c
     }
 }
 
-bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, const uint16_t mid, const void *session) {
+bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, const uint16_t mid, const void *session,
+                                    uint8_t *dedup_coap_error_code) {
     LOG("Entering");
     coap_msg_dedup_t *message_dedup_check = *message_dedup;
     while (message_dedup_check != NULL) {
         bool is_equal = lwm2m_session_is_equal(message_dedup_check->session, (void *)session, NULL);
         if (message_dedup_check->mid == mid && is_equal) {
             LOG_ARG("Duplicate, ignore mid %d (session: %p)", mid, session);
+            *dedup_coap_error_code = message_dedup_check->coap_response_code;
             return true;
         }
         message_dedup_check = message_dedup_check->next;
@@ -73,6 +75,22 @@ bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, const uint
     *message_dedup = new_message;
     (*message_dedup)->next = message_dedup_temp;
 
+    return false;
+}
+
+bool coap_deduplication_set_response_code(coap_msg_dedup_t **message_dedup, const uint16_t mid, const void *session,
+                                          const uint8_t coap_response_code) {
+    LOG_DBG("Entering");
+    coap_msg_dedup_t *message_dedup_check = *message_dedup;
+    while (message_dedup_check != NULL) {
+        bool is_equal = lwm2m_session_is_equal(message_dedup_check->session, (void *)session, NULL);
+        if (message_dedup_check->mid == mid && is_equal) {
+            LOG_ARG_DBG("Set response code %" PRIu8 " to message mid %" PRIu16, coap_response_code, mid);
+            message_dedup_check->coap_response_code = coap_response_code;
+            return true;
+        }
+        message_dedup_check = message_dedup_check->next;
+    }
     return false;
 }
 
