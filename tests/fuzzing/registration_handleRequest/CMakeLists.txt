@@ -9,6 +9,7 @@ add_fuzzing_test(
         ${CMAKE_SOURCE_DIR}/core/observe.c
         ${CMAKE_SOURCE_DIR}/core/liblwm2m.c
         ${CMAKE_SOURCE_DIR}/core/packet.c
+        ${CMAKE_SOURCE_DIR}/core/reporting.c
         ${CMAKE_SOURCE_DIR}/coap/er-coap-13/er-coap-13.c
         ${CMAKE_SOURCE_DIR}/coap/block.c
         ${CMAKE_SOURCE_DIR}/coap/transaction.c
