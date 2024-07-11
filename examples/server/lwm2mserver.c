@@ -1119,6 +1119,27 @@ static command_desc_t commands[] = {
 
     COMMAND_END_LIST};
 
+void handle_stdin(lwm2m_context_t *lwm2mH) {
+    char *line = NULL;
+    size_t bufLen = 0;
+
+    ssize_t num_bytes = getline(&line, &bufLen, stdin);
+
+    if (num_bytes > 1) {
+        line[num_bytes] = 0;
+        handle_command(lwm2mH, commands, line);
+        fprintf(stdout, "\r\n");
+    }
+    if (!eventloop_stop_requested()) {
+        fprintf(stdout, "> ");
+        fflush(stdout);
+    } else {
+        fprintf(stdout, "\r\n");
+    }
+
+    lwm2m_free(line);
+}
+
 int main(int argc, char *argv[])
 {
     int sock;
@@ -1285,25 +1306,7 @@ int main(int argc, char *argv[])
             }
             else if (FD_ISSET(STDIN_FILENO, &readfds))
             {
-                char *line = NULL;
-                size_t bufLen = 0;
-
-                numBytes = getline(&line, &bufLen, stdin);
-
-                if (numBytes > 1)
-                {
-                    line[numBytes] = 0;
-                    handle_command(lwm2mH, commands, line);
-                    fprintf(stdout, "\r\n");
-                }
-                if (!eventloop_stop_requested()) {
-                    fprintf(stdout, "> ");
-                    fflush(stdout);
-                } else {
-                    fprintf(stdout, "\r\n");
-                }
-
-                lwm2m_free(line);
+                handle_stdin(lwm2mH);
             }
         }
     }
