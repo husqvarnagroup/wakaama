@@ -76,7 +76,10 @@
 
 #define MAX_PACKET_SIZE 2048
 
-static int g_quit = 0;
+static bool eventloop_quit = false;
+void lwm2m_eventloop_stop(void) { eventloop_quit = true; }
+
+static inline bool eventloop_stop_requested(void) { return eventloop_quit; }
 
 static void prv_print_error(uint8_t status)
 {
@@ -1012,13 +1015,10 @@ static void prv_quit(lwm2m_context_t *lwm2mH,
     (void)lwm2mH;
     (void)user_data;
 
-    g_quit = 1;
+    lwm2m_eventloop_stop();
 }
 
-void handle_sigint(int signum)
-{
-    g_quit = 2;
-}
+void handle_sigint(int signum) { lwm2m_eventloop_stop(); }
 
 void print_usage(void)
 {
@@ -1178,8 +1178,7 @@ int main(int argc, char *argv[])
     lwm2m_reporting_set_send_callback(lwm2mH, prv_reporting_send_callback, NULL);
 #endif
 
-    while (0 == g_quit)
-    {
+    while (!eventloop_stop_requested()) {
         FD_ZERO(&readfds);
         FD_SET(sock, &readfds);
         FD_SET(STDIN_FILENO, &readfds);
@@ -1275,13 +1274,10 @@ int main(int argc, char *argv[])
                     handle_command(lwm2mH, commands, line);
                     fprintf(stdout, "\r\n");
                 }
-                if (g_quit == 0)
-                {
+                if (!eventloop_stop_requested()) {
                     fprintf(stdout, "> ");
                     fflush(stdout);
-                }
-                else
-                {
+                } else {
                     fprintf(stdout, "\r\n");
                 }
 
