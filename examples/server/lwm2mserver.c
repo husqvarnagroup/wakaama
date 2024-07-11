@@ -1032,6 +1032,93 @@ void print_usage(void)
     fprintf(stdout, "\r\n");
 }
 
+static command_desc_t commands[] = {
+    {"list", "List registered clients.", NULL, prv_output_clients, NULL},
+    {"read", "Read from a client.",
+     " read CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to read such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
+     "Result will be displayed asynchronously.",
+     prv_read_client, NULL},
+    {"disc", "Discover resources of a client.",
+     " disc CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to discover such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
+     "Result will be displayed asynchronously.",
+     prv_discover_client, NULL},
+    {"write", "Write to a client.",
+     " write CLIENT# URI DATA\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to write to such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
+     "   DATA: data to write. Text or a supported JSON format.\r\n"
+     "Result will be displayed asynchronously.",
+     prv_write_client, NULL},
+    {"update", "Write to a client with partial update.",
+     " update CLIENT# URI DATA\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to write to such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
+     "   DATA: data to write. Must be a supported JSON format.\r\n"
+     "Result will be displayed asynchronously.",
+     prv_update_client, NULL},
+    {"time", "Write time-related attributes to a client.",
+     " time CLIENT# URI PMIN PMAX\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to write attributes to such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
+     "   PMIN: Minimum period\r\n"
+     "   PMAX: Maximum period\r\n"
+     "Result will be displayed asynchronously.",
+     prv_time_client, NULL},
+    {"attr", "Write value-related attributes to a client.",
+     " attr CLIENT# URI LT GT [STEP]\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to write attributes to such as /3/0/2, /1024/0/1\r\n"
+     "   LT: \"Less than\" value\r\n"
+     "   GT: \"Greater than\" value\r\n"
+     "   STEP: \"Step\" value\r\n"
+     "Result will be displayed asynchronously.",
+     prv_attr_client, NULL},
+    {"clear", "Clear attributes of a client.",
+     " clear CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to clear attributes of such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
+     "Result will be displayed asynchronously.",
+     prv_clear_client, NULL},
+    {"exec", "Execute a client resource.",
+     " exec CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri of the resource to execute such as /3/0/2\r\n"
+     "Result will be displayed asynchronously.",
+     prv_exec_client, NULL},
+    {"del", "Delete a client Object instance.",
+     " del CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri of the instance to delete such as /1024/11\r\n"
+     "Result will be displayed asynchronously.",
+     prv_delete_client, NULL},
+    {"create", "Create an Object instance.",
+     " create CLIENT# URI DATA\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to which create the Object Instance such as /1024, /1024/45 \r\n"
+     "   DATA: data to initialize the new Object Instance (0-255 for object 31024 or any supported JSON format) \r\n"
+     "Result will be displayed asynchronously.",
+     prv_create_client, NULL},
+    {"observe", "Observe from a client.",
+     " observe CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri to observe such as /3, /3/0/2, /1024/11\r\n"
+     "Result will be displayed asynchronously.",
+     prv_observe_client, NULL},
+    {"cancel", "Cancel an observe.",
+     " cancel CLIENT# URI\r\n"
+     "   CLIENT#: client number as returned by command 'list'\r\n"
+     "   URI: uri on which to cancel an observe such as /3, /3/0/2, /1024/11\r\n"
+     "Result will be displayed asynchronously.",
+     prv_cancel_client, NULL},
+
+    {"q", "Quit the server.", NULL, prv_quit, NULL},
+
+    COMMAND_END_LIST};
+
 int main(int argc, char *argv[])
 {
     int sock;
@@ -1043,71 +1130,6 @@ int main(int argc, char *argv[])
     int addressFamily = AF_INET6;
     int opt;
     const char * localPort = LWM2M_STANDARD_PORT_STR;
-
-    command_desc_t commands[] =
-    {
-            {"list", "List registered clients.", NULL, prv_output_clients, NULL},
-            {"read", "Read from a client.", " read CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to read such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
-                                            "Result will be displayed asynchronously.", prv_read_client, NULL},
-            {"disc", "Discover resources of a client.", " disc CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to discover such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
-                                            "Result will be displayed asynchronously.", prv_discover_client, NULL},
-            {"write", "Write to a client.", " write CLIENT# URI DATA\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to write to such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
-                                            "   DATA: data to write. Text or a supported JSON format.\r\n"
-                                            "Result will be displayed asynchronously.", prv_write_client, NULL},
-            {"update", "Write to a client with partial update.", " update CLIENT# URI DATA\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to write to such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
-                                            "   DATA: data to write. Must be a supported JSON format.\r\n"
-                                            "Result will be displayed asynchronously.", prv_update_client, NULL},
-            {"time", "Write time-related attributes to a client.", " time CLIENT# URI PMIN PMAX\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to write attributes to such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
-                                            "   PMIN: Minimum period\r\n"
-                                            "   PMAX: Maximum period\r\n"
-                                            "Result will be displayed asynchronously.", prv_time_client, NULL},
-            {"attr", "Write value-related attributes to a client.", " attr CLIENT# URI LT GT [STEP]\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to write attributes to such as /3/0/2, /1024/0/1\r\n"
-                                            "   LT: \"Less than\" value\r\n"
-                                            "   GT: \"Greater than\" value\r\n"
-                                            "   STEP: \"Step\" value\r\n"
-                                            "Result will be displayed asynchronously.", prv_attr_client, NULL},
-            {"clear", "Clear attributes of a client.", " clear CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to clear attributes of such as /3, /3/0/2, /1024/11, /1024/0/1\r\n"
-                                            "Result will be displayed asynchronously.", prv_clear_client, NULL},
-            {"exec", "Execute a client resource.", " exec CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri of the resource to execute such as /3/0/2\r\n"
-                                            "Result will be displayed asynchronously.", prv_exec_client, NULL},
-            {"del", "Delete a client Object instance.", " del CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri of the instance to delete such as /1024/11\r\n"
-                                            "Result will be displayed asynchronously.", prv_delete_client, NULL},
-            {"create", "Create an Object instance.", " create CLIENT# URI DATA\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to which create the Object Instance such as /1024, /1024/45 \r\n"
-                                            "   DATA: data to initialize the new Object Instance (0-255 for object 31024 or any supported JSON format) \r\n"
-                                            "Result will be displayed asynchronously.", prv_create_client, NULL},
-            {"observe", "Observe from a client.", " observe CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri to observe such as /3, /3/0/2, /1024/11\r\n"
-                                            "Result will be displayed asynchronously.", prv_observe_client, NULL},
-            {"cancel", "Cancel an observe.", " cancel CLIENT# URI\r\n"
-                                            "   CLIENT#: client number as returned by command 'list'\r\n"
-                                            "   URI: uri on which to cancel an observe such as /3, /3/0/2, /1024/11\r\n"
-                                            "Result will be displayed asynchronously.", prv_cancel_client, NULL},
-
-            {"q", "Quit the server.", NULL, prv_quit, NULL},
-
-            COMMAND_END_LIST
-    };
 
     opt = 1;
     while (opt < argc)
