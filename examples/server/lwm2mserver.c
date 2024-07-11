@@ -1119,6 +1119,25 @@ static command_desc_t commands[] = {
 
     COMMAND_END_LIST};
 
+void print_peer_address_and_buffer(const uint8_t *buffer, ssize_t buffer_len, struct sockaddr_storage *addr) {
+    char s[INET6_ADDRSTRLEN];
+    in_port_t port = 0;
+
+    s[0] = 0;
+    if (AF_INET == (*addr).ss_family) {
+        struct sockaddr_in *saddr = (struct sockaddr_in *)addr;
+        inet_ntop(saddr->sin_family, &saddr->sin_addr, s, INET6_ADDRSTRLEN);
+        port = saddr->sin_port;
+    } else if (AF_INET6 == (*addr).ss_family) {
+        struct sockaddr_in6 *saddr = (struct sockaddr_in6 *)addr;
+        inet_ntop(saddr->sin6_family, &saddr->sin6_addr, s, INET6_ADDRSTRLEN);
+        port = saddr->sin6_port;
+    }
+
+    fprintf(stderr, "%zd bytes received from [%s]:%hu\r\n", buffer_len, s, ntohs(port));
+    output_buffer(stderr, buffer, (size_t)buffer_len, 0);
+}
+
 void handle_stdin(lwm2m_context_t *lwm2mH) {
     char *line = NULL;
     size_t bufLen = 0;
@@ -1268,27 +1287,9 @@ int main(int argc, char *argv[])
                 } 
                 else
                 {
-                    char s[INET6_ADDRSTRLEN];
-                    in_port_t port;
+                    print_peer_address_and_buffer(buffer, numBytes, &addr);
+
                     lwm2m_connection_t *connP;
-
-                    s[0] = 0;
-                    if (AF_INET == addr.ss_family)
-                    {
-                        struct sockaddr_in *saddr = (struct sockaddr_in *)&addr;
-                        inet_ntop(saddr->sin_family, &saddr->sin_addr, s, INET6_ADDRSTRLEN);
-                        port = saddr->sin_port;
-                    }
-                    else if (AF_INET6 == addr.ss_family)
-                    {
-                        struct sockaddr_in6 *saddr = (struct sockaddr_in6 *)&addr;
-                        inet_ntop(saddr->sin6_family, &saddr->sin6_addr, s, INET6_ADDRSTRLEN);
-                        port = saddr->sin6_port;
-                    }
-
-                    fprintf(stderr, "%zd bytes received from [%s]:%hu\r\n", numBytes, s, ntohs(port));
-                    output_buffer(stderr, buffer, (size_t)numBytes, 0);
-
                     connP = lwm2m_connection_find(connList, &addr, addrLen);
                     if (connP == NULL)
                     {
