@@ -1175,6 +1175,24 @@ ssize_t read_from_socket(int sock, uint8_t *buffer, struct sockaddr_storage *add
     return num_bytes;
 }
 
+lwm2m_connection_t *connection_find_or_new_incoming(lwm2m_connection_t **connList,
+                                                          int sock,
+                                                          struct sockaddr_storage *addr,
+                                                          socklen_t addrLen
+                                                          ) {
+    lwm2m_connection_t *connP = lwm2m_connection_find(*connList, addr, addrLen);
+    if (connP == NULL)
+    {
+        connP = lwm2m_connection_new_incoming(*connList, sock, (struct sockaddr *)addr, addrLen);
+        if (connP != NULL)
+        {
+            *connList = connP;
+        }
+    }
+
+    return connP;
+}
+
 int main(int argc, char *argv[])
 {
     int sock;
@@ -1295,16 +1313,7 @@ int main(int argc, char *argv[])
                 if (numBytes >= 0) {
                     print_peer_address_and_buffer(buffer, numBytes, &addr);
 
-                    lwm2m_connection_t *connP;
-                    connP = lwm2m_connection_find(connList, &addr, addrLen);
-                    if (connP == NULL)
-                    {
-                        connP = lwm2m_connection_new_incoming(connList, sock, (struct sockaddr *)&addr, addrLen);
-                        if (connP != NULL)
-                        {
-                            connList = connP;
-                        }
-                    }
+                    lwm2m_connection_t *connP = connection_find_or_new_incoming(&connList, sock, &addr, addrLen);
                     if (connP != NULL)
                     {
                         lwm2m_handle_packet(lwm2mH, buffer, (size_t)numBytes, connP);
