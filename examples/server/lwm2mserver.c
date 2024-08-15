@@ -1159,6 +1159,20 @@ void handle_stdin(lwm2m_context_t *lwm2mH) {
     lwm2m_free(line);
 }
 
+ssize_t read_from_socket(int sock, uint8_t *buffer, struct sockaddr_storage *addr, socklen_t *addrLen) {
+    ssize_t num_bytes = recvfrom(sock, buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)addr, addrLen);
+
+    if (num_bytes == -1) {
+        fprintf(stderr, "Error in recvfrom(): %d\r\n", errno);
+        return -1;
+    } else if (num_bytes >= MAX_PACKET_SIZE) {
+        fprintf(stderr, "Received packet >= MAX_PACKET_SIZE\r\n");
+        return -1;
+    }
+
+    return num_bytes;
+}
+
 int main(int argc, char *argv[])
 {
     int sock;
@@ -1267,7 +1281,6 @@ int main(int argc, char *argv[])
         else if (result > 0)
         {
             uint8_t buffer[MAX_PACKET_SIZE];
-            ssize_t numBytes;
 
             if (FD_ISSET(sock, &readfds))
             {
@@ -1275,18 +1288,9 @@ int main(int argc, char *argv[])
                 socklen_t addrLen;
 
                 addrLen = sizeof(addr);
-                numBytes = recvfrom(sock, buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrLen);
+                ssize_t numBytes = read_from_socket(sock, buffer, &addr, &addrLen);
 
-                if (numBytes == -1)
-                {
-                    fprintf(stderr, "Error in recvfrom(): %d\r\n", errno);
-                }
-                else if (numBytes >= MAX_PACKET_SIZE) 
-                {
-                    fprintf(stderr, "Received packet >= MAX_PACKET_SIZE\r\n");
-                } 
-                else
-                {
+                if (numBytes >= 0) {
                     print_peer_address_and_buffer(buffer, numBytes, &addr);
 
                     lwm2m_connection_t *connP;
