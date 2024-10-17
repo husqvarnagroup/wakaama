@@ -1,11 +1,28 @@
 
 // https://rust-lang.github.io/rust-bindgen/tutorial-3.html
 
+use std::path::PathBuf;
+
 fn main() {
-    println!("cargo:rerun-if-changed=../include/liblwm2m.h");
+    let wakaama_c_path = "../";
+    
+    build_wakaama(wakaama_c_path);
+    generate_wrapper(wakaama_c_path);
+}
+
+fn build_wakaama(wakaama_c_path: &str) {
+    let dst = cmake::Config::new(wakaama_c_path).build_target("wakaama_static").build();
+    println!("cargo:rustc-link-search=native={}",
+             dst.join("build").display());
+    println!("cargo:rustc-link-lib=static=wakaama_static");
+}
+
+fn generate_wrapper(wakaama_c_path: &str) {
+    let c_header_path = PathBuf::from(wakaama_c_path).join("include/liblwm2m.h");
+    println!("cargo:rerun-if-changed={}", c_header_path.display());
 
     let bindings = bindgen::Builder::default()
-        .header("../include/liblwm2m.h")
+        .header(c_header_path.to_str().unwrap())
         .generate()
         .expect("Unable to generate bindings");
 
