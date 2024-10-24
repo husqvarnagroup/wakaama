@@ -45,16 +45,45 @@ pub unsafe extern "C" fn lwm2m_buffer_send(
     COAP_NO_ERROR as u8
 }
 
-// not yet needed
-#[allow(dead_code)]
-fn handle_packet(mut buffer: Vec<u8>) {
-    unsafe {
-        let context: *mut lwm2m_context_t = lwm2m_init(std::ptr::null_mut());
-        let buf = buffer.as_mut_ptr();
-        let len = buffer.len();
-        let session = std::ptr::null_mut();
-        lwm2m_handle_packet(context, buf, len, session);
+
+pub struct Server {
+    context: *mut lwm2m_context_t
+}
+
+impl Server {
+    pub fn new() -> Server {
+        Server { context: unsafe { lwm2m_init(std::ptr::null_mut()) } }
     }
+
+    pub fn set_monitoring_callback(&self, monitoring_callback: lwm2m_result_callback_t) {
+        unsafe {
+            let user_data = std::ptr::null_mut();
+            lwm2m_set_monitoring_callback(self.context, monitoring_callback, user_data);
+        }
+    }
+
+    fn handle_packet(self, mut buffer: Vec<u8>) {
+        unsafe {
+            let buf = buffer.as_mut_ptr();
+            let len = buffer.len();
+            let session = std::ptr::null_mut();
+            lwm2m_handle_packet(self.context, buf, len, session);
+        }
+    }
+}
+
+extern "C" fn monitoring_callback(
+    _contextP: *mut lwm2m_context_t,
+    clientID: u16,
+    _uriP: *mut lwm2m_uri_t,
+    _status: ::std::os::raw::c_int,
+    _block_info: *mut block_info_t,
+    _format: lwm2m_media_type_t,
+    _data: *mut u8,
+    _dataLength: usize,
+    _userData: *mut ::std::os::raw::c_void,
+) {
+    println!("monitoring_callback called with id: {}", clientID);
 }
 
 #[cfg(test)]
@@ -69,8 +98,13 @@ mod tests {
 
     #[test]
     fn test_handle_packet() {
+        
+        let server = Server::new();
+        server.set_monitoring_callback(Some(monitoring_callback));
+        
+
         let packet = coap_client_for_tests();
-        handle_packet(packet);
+        server.handle_packet(packet);
 
         let response = get_response_from_wakaama();
 
