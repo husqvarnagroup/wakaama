@@ -9,6 +9,7 @@ fn main() {
 
 fn build_wakaama(wakaama_c_path: &str) {
     let dst = cmake::Config::new(wakaama_c_path)
+        .define("WAKAAMA_PLATFORM", "POSIX")
         .build_target("wakaama_static")
         .build();
     println!(
@@ -24,6 +25,9 @@ fn generate_wrapper(wakaama_c_path: &str) {
 
     let bindings = bindgen::Builder::default()
         .header(c_header_path.to_str().unwrap())
+        .blocklist_function("lwm2m_session_is_equal")
+        .blocklist_function("lwm2m_buffer_send")
+        .clang_macro_fallback()
         .generate()
         .expect("Unable to generate bindings");
 
