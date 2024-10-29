@@ -3,9 +3,18 @@
 #![allow(non_snake_case)]
 
 use std::cmp::min;
-use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::sync::{mpsc, Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 
 include!(concat!(env!("OUT_DIR"), "/wakaama_bindings.rs"));
+
+
+lazy_static::lazy_static! {
+    static ref SEND_BUF_MUTEX: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
+    static ref CALLBACK_MANAGER: Arc<Mutex<HashMap<u64, Sender<u16>>> > = Arc::new(Mutex::new(HashMap::new()));
+}
 
 #[no_mangle]
 pub extern "C" fn lwm2m_session_is_equal(
@@ -21,9 +30,6 @@ pub extern "C" fn lwm2m_session_is_equal(
 //
 const MAX_PACKET_SIZE: usize = 2048;
 
-lazy_static::lazy_static! {
-    static ref SEND_BUF_MUTEX: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
-}
 
 /// # Safety
 ///
@@ -45,24 +51,73 @@ pub unsafe extern "C" fn lwm2m_buffer_send(
     COAP_NO_ERROR as u8
 }
 
+pub trait MonitoringHandler {
+    fn monitor(&mut self, client_id: u16);
+}
 
 pub struct Server {
-    context: *mut lwm2m_context_t
+    pub context: *mut lwm2m_context_t,
+    rx: Receiver<u16>,
+    monitoring_handler: Option<Arc<Mutex<dyn MonitoringHandler>>>,
+}
+
+impl PartialEq for Server {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self.context, other.context)
+    }
+}
+
+impl Eq for Server {}
+
+impl Hash for Server {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.context.hash(state)
+    }
+}
+
+fn calculate_hash(t: *mut lwm2m_context_t) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }
 
 impl Server {
-    pub fn new() -> Server {
-        Server { context: unsafe { lwm2m_init(std::ptr::null_mut()) } }
+    pub fn new() -> Arc<Mutex<Server>> {
+        let (tx, rx) = mpsc::channel();
+
+        let server = Arc::new(Mutex::new(Server {
+            context: unsafe { lwm2m_init(std::ptr::null_mut()) },
+            rx,
+            monitoring_handler: None,
+        }));
+                
+        let callback_manager = CALLBACK_MANAGER.clone();
+        let callback_manager = callback_manager.clone();
+        let callback_manager = &mut callback_manager.lock().unwrap();
+        callback_manager.insert(calculate_hash(server.lock().unwrap().context), tx);
+        let _ = callback_manager;
+        
+        server
     }
 
-    pub fn set_monitoring_callback(&self, monitoring_callback: lwm2m_result_callback_t) {
+    pub fn register_monitoring_handler(&mut self, handler: Arc<Mutex<dyn MonitoringHandler>>) {
         unsafe {
-            let user_data = std::ptr::null_mut();
-            lwm2m_set_monitoring_callback(self.context, monitoring_callback, user_data);
+            lwm2m_set_monitoring_callback(self.context, Some(monitoring_callback), std::ptr::null_mut());
         }
+        
+        self.monitoring_handler = Some(handler)
+    }
+    
+    pub fn handle_callback(&self) {
+        let id = self.rx.recv().unwrap();
+        self.monitoring_callback(id)
     }
 
-    fn handle_packet(self, mut buffer: Vec<u8>) {
+    fn monitoring_callback(&self, client_id: u16) {
+        self.monitoring_handler.clone().unwrap().lock().unwrap().monitor(client_id);
+    }
+
+    fn handle_packet(&self, mut buffer: Vec<u8>) {
         unsafe {
             let buf = buffer.as_mut_ptr();
             let len = buffer.len();
@@ -71,6 +126,10 @@ impl Server {
         }
     }
 }
+
+
+unsafe impl Send for Server {}
+unsafe impl Sync for Server {}
 
 extern "C" fn monitoring_callback(
     _contextP: *mut lwm2m_context_t,
@@ -83,7 +142,12 @@ extern "C" fn monitoring_callback(
     _dataLength: usize,
     _userData: *mut ::std::os::raw::c_void,
 ) {
-    println!("monitoring_callback called with id: {}", clientID);
+
+    let hash = calculate_hash(_contextP);
+    let mng = CALLBACK_MANAGER.lock().unwrap();
+    let sender = mng.get(&hash).unwrap();
+    let res = sender.send(clientID);
+    assert!(res.is_ok());
 }
 
 #[cfg(test)]
@@ -96,19 +160,42 @@ mod tests {
     };
     use std::net::SocketAddr;
 
+
     #[test]
     fn test_handle_packet() {
-        
+
         let server = Server::new();
-        server.set_monitoring_callback(Some(monitoring_callback));
-        
+        struct MyMonitoringHandler {
+            str: String
+        }
+
+        impl MyMonitoringHandler {
+            fn new() -> MyMonitoringHandler {
+                MyMonitoringHandler {
+                    str: "".to_string()
+                } 
+            }
+        }
+        impl MonitoringHandler for MyMonitoringHandler {
+            fn monitor(&mut self, _client_id: u16) {
+                self.str = "Called MonitoringHandler::monitor".to_string();
+                
+            }
+        }
+        let my_monitoring_handler = Arc::new(Mutex::new(MyMonitoringHandler::new()));
+
+        server.clone().lock().unwrap().register_monitoring_handler(Arc::clone(&my_monitoring_handler) as _);
 
         let packet = coap_client_for_tests();
+        let server = server.clone();
+        let server = server.lock().unwrap();
         server.handle_packet(packet);
+        server.handle_callback();
 
         let response = get_response_from_wakaama();
 
         assert_eq!(response.header.code, MessageClass::Response(Created));
+        assert_eq!(my_monitoring_handler.lock().unwrap().str, "Called MonitoringHandler::monitor");
     }
 
     fn get_response_from_wakaama() -> Packet {
