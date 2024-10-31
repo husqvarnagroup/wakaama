@@ -109,12 +109,10 @@ impl Server {
     }
     
     pub fn handle_callback(&self) {
-        let id = self.rx.recv().unwrap();
-        self.monitoring_callback(id)
-    }
-
-    fn monitoring_callback(&self, client_id: u16) {
-        self.monitoring_handler.clone().unwrap().lock().unwrap().monitor(client_id);
+        if let Some(handler) = self.monitoring_handler.clone() {
+            let id = self.rx.recv().unwrap();
+            handler.lock().unwrap().monitor(id)
+        }
     }
 
     fn handle_packet(&self, mut buffer: Vec<u8>) {
@@ -159,43 +157,76 @@ mod tests {
         CoapOption, CoapRequest, ContentFormat, MessageClass, Packet, RequestType as Method,
     };
     use std::net::SocketAddr;
+    use std::thread;
 
+    struct TestingMonitoringHandler {
+        object_name: String,
+        result: String
+    }
+
+    impl TestingMonitoringHandler {
+        fn new(object_name: String) -> TestingMonitoringHandler {
+            TestingMonitoringHandler {
+                object_name,
+                result: "".to_string(),
+            }
+        }
+    }
+    impl MonitoringHandler for TestingMonitoringHandler {
+        fn monitor(&mut self, _client_id: u16) {
+            self.result = format!("Called MonitoringHandler::monitor from {:}", self.object_name);
+
+        }
+    }
 
     #[test]
-    fn test_handle_packet() {
-
+    fn test_callback() {
         let server = Server::new();
-        struct MyMonitoringHandler {
-            str: String
-        }
+        let mut server = server.lock().unwrap();
+        
+        let my_monitoring_handler = Arc::new(Mutex::new(TestingMonitoringHandler::new("object A".to_string())));
 
-        impl MyMonitoringHandler {
-            fn new() -> MyMonitoringHandler {
-                MyMonitoringHandler {
-                    str: "".to_string()
-                } 
-            }
-        }
-        impl MonitoringHandler for MyMonitoringHandler {
-            fn monitor(&mut self, _client_id: u16) {
-                self.str = "Called MonitoringHandler::monitor".to_string();
-                
-            }
-        }
-        let my_monitoring_handler = Arc::new(Mutex::new(MyMonitoringHandler::new()));
-
-        server.clone().lock().unwrap().register_monitoring_handler(Arc::clone(&my_monitoring_handler) as _);
+        server.register_monitoring_handler(Arc::clone(&my_monitoring_handler) as _);
 
         let packet = coap_client_for_tests();
-        let server = server.clone();
-        let server = server.lock().unwrap();
+
+        
         server.handle_packet(packet);
         server.handle_callback();
 
         let response = get_response_from_wakaama();
 
         assert_eq!(response.header.code, MessageClass::Response(Created));
-        assert_eq!(my_monitoring_handler.lock().unwrap().str, "Called MonitoringHandler::monitor");
+        assert_eq!(my_monitoring_handler.lock().unwrap().result, "Called MonitoringHandler::monitor from object A");
+    }
+    
+    #[test]
+    fn test_callback_multithreaded() {
+        let num_servers = 3;
+        let mut servers = Vec::with_capacity(num_servers);
+        let mut monitoring_handlers = Vec::with_capacity(num_servers);
+        for i in 0..servers.capacity() {
+            let server = Server::new();
+
+
+            let my_monitoring_handler = Arc::new(Mutex::new(TestingMonitoringHandler::new(format!("object {:}", i))));
+            monitoring_handlers.push(my_monitoring_handler.clone());
+            server.lock().unwrap().register_monitoring_handler(Arc::clone(&my_monitoring_handler.clone()) as _);
+            servers.push(
+                thread::spawn(move || {
+                    let server = server.lock().unwrap();
+                    server.handle_packet(coap_client_for_tests());
+                    server.handle_callback();            
+                }));
+        }
+        
+        for s in servers {
+            s.join().unwrap();
+        }
+
+        for (i,h) in monitoring_handlers.iter().enumerate() {
+            assert_eq!(h.lock().unwrap().result, format!("Called MonitoringHandler::monitor from object {:}", i));
+        }
     }
 
     fn get_response_from_wakaama() -> Packet {
