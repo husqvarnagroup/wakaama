@@ -5,6 +5,7 @@
 use std::cmp::min;
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::mem;
 use std::sync::{mpsc, Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -115,12 +116,15 @@ impl Server {
         }
     }
 
-    fn handle_packet(&self, mut buffer: Vec<u8>) {
+    fn handle_packet(&self, buffer: Vec<u8>) {
         unsafe {
-            let buf = buffer.as_mut_ptr();
-            let len = buffer.len();
-            let session = std::ptr::null_mut();
-            lwm2m_handle_packet(self.context, buf, len, session);
+            let buf = buffer.to_vec();
+            let mut buf = buf.into_boxed_slice();
+            let data = buf.as_mut_ptr();
+            let len = buf.len();
+            mem::forget(buf);
+            
+            lwm2m_handle_packet(self.context, data, len, std::ptr::null_mut());
         }
     }
 }
@@ -202,7 +206,7 @@ mod tests {
     
     #[test]
     fn test_callback_multithreaded() {
-        let num_servers = 3;
+        let num_servers = 100;
         let mut servers = Vec::with_capacity(num_servers);
         let mut monitoring_handlers = Vec::with_capacity(num_servers);
         for i in 0..servers.capacity() {
@@ -215,8 +219,9 @@ mod tests {
             servers.push(
                 thread::spawn(move || {
                     let server = server.lock().unwrap();
-                    server.handle_packet(coap_client_for_tests());
-                    server.handle_callback();            
+                    let packet = coap_client_for_tests();
+                    server.handle_packet(packet.clone());
+                    server.handle_callback();
                 }));
         }
         
@@ -235,6 +240,7 @@ mod tests {
         Packet::from_bytes(actual).unwrap()
     }
 
+    #[inline(never)]
     fn coap_client_for_tests() -> Vec<u8> {
         let mut request: CoapRequest<SocketAddr> = CoapRequest::new();
 
