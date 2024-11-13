@@ -29,6 +29,7 @@ fn generate_wrapper(wakaama_c_path: &str) {
         .blocklist_function("lwm2m_session_is_equal")
         .blocklist_function("lwm2m_buffer_send")
         .clang_arg("-DLWM2M_SERVER_MODE=1")
+        .clang_arg("-DWAKAAMA_LOG_LEVEL=DBG")
         .clang_macro_fallback()
         .generate()
         .expect("Unable to generate bindings");
