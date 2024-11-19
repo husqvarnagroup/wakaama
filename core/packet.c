@@ -503,7 +503,7 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                 /* Internal error occurred, return silently. */
                 return;
             }
-            LOG_WARN("Message %d already seen in transmission window", message->mid);
+            LOG_DBG("Message %d already seen in transmission window", message->mid);
             coap_init_message(response, COAP_TYPE_ACK, dedup_coap_error_code, message->mid);
             if (message->token_len) {
                 coap_set_header_token(response, message->token, message->token_len);
