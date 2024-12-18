@@ -1181,6 +1181,15 @@ ssize_t read_from_socket(int sock, uint8_t *buffer, struct sockaddr_storage *add
     return num_bytes;
 }
 
+ssize_t read_from_socket_and_print_buffer(int sock, uint8_t *buffer, struct sockaddr_storage *addr,
+                                          socklen_t *addrLen) {
+    const ssize_t numBytes = read_from_socket(sock, buffer, addr, addrLen);
+    if (numBytes > 0) {
+        print_peer_address_and_buffer(buffer, numBytes, addr);
+    }
+    return numBytes;
+}
+
 int run_eventloop(lwm2m_context_t *lwm2mH, int sock) {
     struct timeval tv;
     tv.tv_sec = 60;
@@ -1214,10 +1223,9 @@ int run_eventloop(lwm2m_context_t *lwm2mH, int sock) {
                 socklen_t addrLen;
 
                 addrLen = sizeof(addr);
-                ssize_t numBytes = read_from_socket(sock, buffer, &addr, &addrLen);
+                ssize_t numBytes = read_from_socket_and_print_buffer(sock, buffer, &addr, &addrLen);
 
                 if (numBytes >= 0) {
-                    print_peer_address_and_buffer(buffer, numBytes, &addr);
 
                     lwm2m_connection_t *connP = lwm2m_connection_find_or_new_incoming(&connList, sock, addr, addrLen);
                     if (connP != NULL) {
