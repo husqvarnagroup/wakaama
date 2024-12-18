@@ -46,6 +46,8 @@ int lwm2m_create_socket(const char *portStr, int ai_family);
 lwm2m_connection_t *lwm2m_connection_find(lwm2m_connection_t *connList, struct sockaddr_storage *addr, size_t addrLen);
 lwm2m_connection_t *lwm2m_connection_new_incoming(lwm2m_connection_t *connList, int sock, struct sockaddr *addr,
                                                   size_t addrLen);
+lwm2m_connection_t *lwm2m_connection_find_or_new_incoming(lwm2m_connection_t **connList, int sock,
+                                                          struct sockaddr_storage addr, socklen_t addrLen);
 lwm2m_connection_t *lwm2m_connection_create(lwm2m_connection_t *connList, int sock, char *host, char *port,
                                             int addressFamily);
 

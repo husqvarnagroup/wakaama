@@ -106,6 +106,19 @@ lwm2m_connection_t *lwm2m_connection_new_incoming(lwm2m_connection_t *connList, 
     return connP;
 }
 
+lwm2m_connection_t *lwm2m_connection_find_or_new_incoming(lwm2m_connection_t **connList, int sock,
+                                                          struct sockaddr_storage addr, socklen_t addrLen) {
+
+    lwm2m_connection_t *connP = lwm2m_connection_find(*connList, &addr, addrLen);
+    if (connP == NULL) {
+        connP = lwm2m_connection_new_incoming(*connList, sock, (struct sockaddr *)&addr, addrLen);
+        if (connP != NULL) {
+            *connList = connP;
+        }
+    }
+    return connP;
+}
+
 lwm2m_connection_t *lwm2m_connection_create(lwm2m_connection_t *connList, int sock, char *host, char *port,
                                             int addressFamily) {
     struct addrinfo hints;
