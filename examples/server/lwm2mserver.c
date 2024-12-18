@@ -1173,14 +1173,61 @@ ssize_t read_from_socket(int sock, uint8_t *buffer, struct sockaddr_storage *add
     return num_bytes;
 }
 
-int main(int argc, char *argv[])
-{
-    int sock;
-    fd_set readfds;
+int run_eventloop(lwm2m_context_t *lwm2mH, int sock) {
     struct timeval tv;
-    int result;
-    lwm2m_context_t * lwm2mH = NULL;
+    tv.tv_sec = 60;
+    tv.tv_usec = 0;
+
+    fd_set readfds;
     lwm2m_connection_t *connList = NULL;
+
+    while (!eventloop_stop_requested()) {
+        FD_ZERO(&readfds);
+        FD_SET(sock, &readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+
+        int result = lwm2m_step(lwm2mH, &(tv.tv_sec));
+        if (result != 0) {
+            fprintf(stderr, "lwm2m_step() failed: 0x%X\r\n", result);
+            return -1;
+        }
+
+        result = select(FD_SETSIZE, &readfds, 0, 0, &tv);
+
+        if (result < 0) {
+            if (errno != EINTR) {
+                fprintf(stderr, "Error in select(): %d\r\n", errno);
+            }
+        } else if (result > 0) {
+            uint8_t buffer[MAX_PACKET_SIZE];
+
+            if (FD_ISSET(sock, &readfds)) {
+                struct sockaddr_storage addr;
+                socklen_t addrLen;
+
+                addrLen = sizeof(addr);
+                ssize_t numBytes = read_from_socket(sock, buffer, &addr, &addrLen);
+
+                if (numBytes >= 0) {
+                    print_peer_address_and_buffer(buffer, numBytes, &addr);
+
+                    lwm2m_connection_t *connP = lwm2m_connection_find_or_new_incoming(&connList, sock, addr, addrLen);
+                    if (connP != NULL) {
+                        lwm2m_handle_packet(lwm2mH, buffer, (size_t)numBytes, connP);
+                    }
+                }
+            } else if (FD_ISSET(STDIN_FILENO, &readfds)) {
+                handle_stdin(lwm2mH);
+            }
+        }
+    }
+
+    lwm2m_connection_free(connList);
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    lwm2m_context_t *lwm2mH = NULL;
     int addressFamily = AF_INET6;
     int opt;
     const char * localPort = LWM2M_STANDARD_PORT_STR;
@@ -1230,13 +1277,6 @@ int main(int argc, char *argv[])
         opt += 1;
     }
 
-    sock = lwm2m_create_socket(localPort, addressFamily);
-    if (sock < 0)
-    {
-        fprintf(stderr, "Error opening socket: %d\r\n", errno);
-        return -1;
-    }
-
     lwm2mH = lwm2m_init(NULL);
     if (NULL == lwm2mH)
     {
@@ -1254,62 +1294,16 @@ int main(int argc, char *argv[])
     lwm2m_reporting_set_send_callback(lwm2mH, prv_reporting_send_callback, NULL);
 #endif
 
-    while (!eventloop_stop_requested()) {
-        FD_ZERO(&readfds);
-        FD_SET(sock, &readfds);
-        FD_SET(STDIN_FILENO, &readfds);
-
-        tv.tv_sec = 60;
-        tv.tv_usec = 0;
-
-        result = lwm2m_step(lwm2mH, &(tv.tv_sec));
-        if (result != 0)
-        {
-            fprintf(stderr, "lwm2m_step() failed: 0x%X\r\n", result);
-            return -1;
-        }
-
-        result = select(FD_SETSIZE, &readfds, 0, 0, &tv);
-
-        if ( result < 0 )
-        {
-            if (errno != EINTR)
-            {
-              fprintf(stderr, "Error in select(): %d\r\n", errno);
-            }
-        }
-        else if (result > 0)
-        {
-            uint8_t buffer[MAX_PACKET_SIZE];
-
-            if (FD_ISSET(sock, &readfds))
-            {
-                struct sockaddr_storage addr;
-                socklen_t addrLen;
-
-                addrLen = sizeof(addr);
-                ssize_t numBytes = read_from_socket(sock, buffer, &addr, &addrLen);
-
-                if (numBytes >= 0) {
-                    print_peer_address_and_buffer(buffer, numBytes, &addr);
-
-                    lwm2m_connection_t *connP = lwm2m_connection_find_or_new_incoming(&connList, sock, addr, addrLen);
-                    if (connP != NULL)
-                    {
-                        lwm2m_handle_packet(lwm2mH, buffer, (size_t)numBytes, connP);
-                    }
-                }
-            }
-            else if (FD_ISSET(STDIN_FILENO, &readfds))
-            {
-                handle_stdin(lwm2mH);
-            }
-        }
+    int sock = lwm2m_create_socket(localPort, addressFamily);
+    if (sock < 0) {
+        fprintf(stderr, "Error opening socket: %d\r\n", errno);
+        return -1;
     }
 
-    lwm2m_close(lwm2mH);
-    close(sock);
-    lwm2m_connection_free(connList);
+    int const ret = run_eventloop(lwm2mH, sock);
 
-    return 0;
+    close(sock);
+    lwm2m_close(lwm2mH);
+
+    return ret;
 }
