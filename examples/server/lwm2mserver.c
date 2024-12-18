@@ -55,21 +55,22 @@
 
 #include "liblwm2m.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/stat.h>
+#include <ctype.h>
 #include <errno.h>
-#include <signal.h>
 #include <inttypes.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "commandline.h"
 #include "udp/connection.h"
@@ -1159,14 +1160,21 @@ void handle_stdin(lwm2m_context_t *lwm2mH) {
     lwm2m_free(line);
 }
 
+void handle_output_err(char const *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+}
+
 ssize_t read_from_socket(int sock, uint8_t *buffer, struct sockaddr_storage *addr, socklen_t *addrLen) {
     ssize_t num_bytes = recvfrom(sock, buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)addr, addrLen);
 
     if (num_bytes == -1) {
-        fprintf(stderr, "Error in recvfrom(): %d\r\n", errno);
+        handle_output_err("Error in recvfrom(): %d\r\n", errno);
         return -1;
     } else if (num_bytes >= MAX_PACKET_SIZE) {
-        fprintf(stderr, "Received packet >= MAX_PACKET_SIZE\r\n");
+        handle_output_err("Received packet >= MAX_PACKET_SIZE\r\n");
         return -1;
     }
 
@@ -1188,7 +1196,7 @@ int run_eventloop(lwm2m_context_t *lwm2mH, int sock) {
 
         int result = lwm2m_step(lwm2mH, &(tv.tv_sec));
         if (result != 0) {
-            fprintf(stderr, "lwm2m_step() failed: 0x%X\r\n", result);
+            handle_output_err("lwm2m_step() failed: 0x%X\r\n", result);
             return -1;
         }
 
@@ -1196,7 +1204,7 @@ int run_eventloop(lwm2m_context_t *lwm2mH, int sock) {
 
         if (result < 0) {
             if (errno != EINTR) {
-                fprintf(stderr, "Error in select(): %d\r\n", errno);
+                handle_output_err("Error in select(): %d\r\n", errno);
             }
         } else if (result > 0) {
             uint8_t buffer[MAX_PACKET_SIZE];
@@ -1296,7 +1304,7 @@ int main(int argc, char *argv[]) {
 
     int sock = lwm2m_create_socket(localPort, addressFamily);
     if (sock < 0) {
-        fprintf(stderr, "Error opening socket: %d\r\n", errno);
+        handle_output_err("Error opening socket: %d\r\n", errno);
         return -1;
     }
 
