@@ -8,6 +8,7 @@ set(WAKAAMA_MODE_BOOTSTRAP_SERVER OFF)
 set(WAKAAMA_CLI ON)
 set(WAKAAMA_TRANSPORT POSIX_UDP)
 set(WAKAAMA_PLATFORM POSIX)
+set(WAKAAMA_EVENT_LOOP POSIX)
 add_subdirectory(../../ wakaama_lib)
 
 add_executable(lwm2mserver)

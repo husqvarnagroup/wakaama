@@ -84,6 +84,14 @@ set_property(CACHE WAKAAMA_TRANSPORT PROPERTY STRINGS POSIX NONE)
 # Command line interface
 option(WAKAAMA_CLI "Command line interface library" OFF)
 
+# Event Loop
+set(WAKAAMA_EVENT_LOOP
+        NONE
+        CACHE STRING "The event loop implementation"
+)
+set_property(CACHE WAKAAMA_EVENT_LOOP PROPERTY STRINGS POSIX NONE)
+
+
 # Endianess
 add_compile_definitions("$<IF:$<STREQUAL:${CMAKE_C_BYTE_ORDER},BIG_ENDIAN>,LWM2M_BIG_ENDIAN,LWM2M_LITTLE_ENDIAN>")
 
@@ -305,6 +313,12 @@ endif()
 if(WAKAAMA_PLATFORM STREQUAL POSIX)
     target_link_libraries(wakaama_static PUBLIC wakaama_platform_posix)
 endif()
+
+if(WAKAAMA_EVENT_LOOP STREQUAL POSIX)
+    add_subdirectory(event_loop/posix)
+    target_link_libraries(wakaama_static PUBLIC wakaama_event_loop_posix)
+endif()
+
 
 if(WAKAAMA_CLI)
     target_link_libraries(wakaama_static PUBLIC wakaama_command_line)

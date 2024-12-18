@@ -1,0 +1,5 @@
+
+add_library(wakaama_event_loop_posix OBJECT)
+
+target_include_directories(wakaama_event_loop_posix PUBLIC include)
+target_sources(wakaama_event_loop_posix PRIVATE event_loop.c)
