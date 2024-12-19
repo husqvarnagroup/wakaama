@@ -99,11 +99,9 @@ typedef struct {
     lwm2m_object_t *securityObjP;
     lwm2m_object_t *serverObject;
     int sock;
-#ifdef WITH_TINYDTLS
-    lwm2m_dtls_connection_t *connList;
-    lwm2m_context_t *lwm2mH;
-#else
     lwm2m_connection_t *connList;
+#ifdef WITH_TINYDTLS
+    lwm2m_context_t *lwm2mH;
 #endif
     int addressFamily;
 } client_data_t;
@@ -183,7 +181,7 @@ void handle_value_changed(lwm2m_context_t *lwm2mH, lwm2m_uri_t *uri, const char 
 void *lwm2m_connect_server(uint16_t secObjInstID, void *userData) {
     client_data_t *dataP;
     lwm2m_list_t *instance;
-    lwm2m_dtls_connection_t *newConnP = NULL;
+    lwm2m_connection_t *newConnP = NULL;
     dataP = (client_data_t *)userData;
     lwm2m_object_t *securityObj = dataP->securityObjP;
 
@@ -255,28 +253,15 @@ exit:
 
 void lwm2m_close_connection(void *sessionH, void *userData) {
     client_data_t *app_data;
-#ifdef WITH_TINYDTLS
-    lwm2m_dtls_connection_t *targetP;
-#else
     lwm2m_connection_t *targetP;
-#endif
 
     app_data = (client_data_t *)userData;
-#ifdef WITH_TINYDTLS
-    targetP = (lwm2m_dtls_connection_t *)sessionH;
-#else
     targetP = (lwm2m_connection_t *)sessionH;
-#endif
 
     if (targetP == app_data->connList) {
         app_data->connList = lwm2m_connection_remove_one(targetP);
     } else {
-#ifdef WITH_TINYDTLS
-        lwm2m_dtls_connection_t *parentP;
-#else
         lwm2m_connection_t *parentP;
-#endif
-
         lwm2m_connection_free(app_data->connList);
     }
 }
@@ -1268,11 +1253,7 @@ int main(int argc, char *argv[]) {
                     char s[INET6_ADDRSTRLEN];
                     in_port_t port;
 
-#ifdef WITH_TINYDTLS
-                    lwm2m_dtls_connection_t *connP;
-#else
                     lwm2m_connection_t *connP;
-#endif
                     if (AF_INET == addr.ss_family) {
                         struct sockaddr_in *saddr = (struct sockaddr_in *)&addr;
                         inet_ntop(saddr->sin_family, &saddr->sin_addr, s, INET6_ADDRSTRLEN);
