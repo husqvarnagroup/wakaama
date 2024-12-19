@@ -26,6 +26,9 @@
 #define COAPS_PORT "5684"
 #define URI_LENGTH 256
 
+// after 40sec of inactivity we rehandshake
+#define DTLS_NAT_TIMEOUT 40
+
 typedef struct _lwm2m_connection_t {
     struct _lwm2m_connection_t *next;
     int sock;
@@ -370,8 +373,8 @@ lwm2m_connection_t *lwm2m_connection_find(lwm2m_connection_t *connList, const st
     return connP;
 }
 
-lwm2m_connection_t *lwm2m_connection_new_incoming(lwm2m_connection_t *connList, int sock,
-                                                       const struct sockaddr *addr, size_t addrLen) {
+lwm2m_connection_t *lwm2m_connection_new_incoming(lwm2m_connection_t *connList, int sock, const struct sockaddr *addr,
+                                                  size_t addrLen) {
     lwm2m_connection_t *connP;
 
     connP = (lwm2m_connection_t *)malloc(sizeof(lwm2m_connection_t));
