@@ -34,12 +34,7 @@
 #define LWM2M_BSSERVER_PORT_STR "5685"
 #define LWM2M_BSSERVER_PORT 5685
 
-typedef struct _lwm2m_connection_t {
-    struct _lwm2m_connection_t *next;
-    int sock;
-    struct sockaddr_in6 addr;
-    size_t addrLen;
-} lwm2m_connection_t;
+typedef struct _lwm2m_connection_t lwm2m_connection_t;
 
 int lwm2m_create_socket(const char *portStr, int ai_family);
 

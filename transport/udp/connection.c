@@ -26,6 +26,13 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+typedef struct _lwm2m_connection_t {
+    struct _lwm2m_connection_t *next;
+    int sock;
+    struct sockaddr_in6 addr;
+    size_t addrLen;
+} lwm2m_connection_t;
+
 static int find_and_bind_to_address(struct addrinfo *res) {
     int s = -1;
     for (struct addrinfo *p = res; p != NULL && s == -1; p = p->ai_next) {

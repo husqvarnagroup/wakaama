@@ -43,18 +43,7 @@
 // after 40sec of inactivity we rehandshake
 #define DTLS_NAT_TIMEOUT 40
 
-typedef struct _lwm2m_dtls_connection_t {
-    struct _lwm2m_dtls_connection_t *next;
-    int sock;
-    struct sockaddr_in6 addr;
-    size_t addrLen;
-    session_t *dtlsSession;
-    lwm2m_object_t *securityObj;
-    int securityInstId;
-    lwm2m_context_t *lwm2mH;
-    dtls_context_t *dtlsContext;
-    time_t lastSend; // last time a data was sent to the server (used for NAT timeouts)
-} lwm2m_dtls_connection_t;
+typedef struct _lwm2m_dtls_connection_t lwm2m_dtls_connection_t;
 
 int lwm2m_create_socket(const char *portStr, int ai_family);
 
