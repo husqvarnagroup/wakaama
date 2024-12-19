@@ -1,5 +1,6 @@
-
 add_library(wakaama_event_loop_posix OBJECT)
 
 target_include_directories(wakaama_event_loop_posix PUBLIC include)
+target_include_directories(wakaama_event_loop_posix PRIVATE ${WAKAAMA_TOP_LEVEL_DIRECTORY}/include)
 target_sources(wakaama_event_loop_posix PRIVATE event_loop.c)
+target_link_libraries(wakaama_event_loop_posix PRIVATE wakaama_transport_posix_udp)

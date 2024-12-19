@@ -73,15 +73,10 @@
 #include <unistd.h>
 
 #include "commandline.h"
-#include "udp/connection.h"
 #include "posix/event_loop.h"
+#include "udp/connection.h"
 
 #define MAX_PACKET_SIZE 2048
-
-static bool eventloop_quit = false;
-void lwm2m_eventloop_stop(void) { eventloop_quit = true; }
-
-static inline bool eventloop_stop_requested(void) { return eventloop_quit; }
 
 static void prv_print_error(uint8_t status)
 {
@@ -1107,7 +1102,8 @@ static command_desc_t commands[] = {
     {"observe", "Observe from a client.",
      " observe CLIENT# URI\r\n"
      "   CLIENT#: client number as returned by command 'list'\r\n"
-     "   URI: uri to observe such as /3, /3/0/2, /1024/11\r\n"
+     "   URI: uri to observe such as void lwm2m_event_loop_close(lwm2m_event_loop_t * event_loop)/3, /3/0/2, "
+     "/1024/11\r\n"
      "Result will be displayed asynchronously.",
      prv_observe_client, NULL},
     {"cancel", "Cancel an observe.",
@@ -1151,11 +1147,7 @@ void handle_stdin(lwm2m_context_t *lwm2mH) {
         handle_command(lwm2mH, commands, line);
         fprintf(stdout, "\r\n");
     }
-    if (!eventloop_stop_requested()) {
-        fprintf(stdout, "> ");
-    } else {
-        fprintf(stdout, "\r\n");
-    }
+    fprintf(stdout, "> ");
     fflush(stdout);
 
     lwm2m_free(line);
@@ -1189,93 +1181,6 @@ ssize_t read_from_socket_and_print_buffer(int sock, uint8_t *buffer, struct sock
         print_peer_address_and_buffer(buffer, numBytes, addr);
     }
     return numBytes;
-}
-
-typedef void (*lwm2m_eventloop_handle_stdin)(lwm2m_context_t *lwm2m_ctx);
-typedef void (*lwm2m_event_loop_output_err)(char const *format, ...);
-typedef ssize_t (*lwm2m_event_loop_read_from_socket)(int sock, uint8_t *buffer, struct sockaddr_storage *addr,
-                                                     socklen_t *addr_len);
-
-typedef struct {
-    lwm2m_context_t *lwm2m_ctx;
-    int sock;
-    lwm2m_eventloop_handle_stdin handle_stdin;
-    lwm2m_event_loop_output_err output_err;
-    lwm2m_event_loop_read_from_socket read_from_socket;
-} lwm2m_event_loop_t;
-
-lwm2m_event_loop_t * lwm2m_event_loop_init(lwm2m_context_t *lwm2m_ctx, int sock,
-                           lwm2m_eventloop_handle_stdin handle_stdin, lwm2m_event_loop_output_err output_err,
-                           lwm2m_event_loop_read_from_socket read_from_socket) {
-
-    lwm2m_event_loop_t * event_loop = lwm2m_malloc(sizeof(lwm2m_event_loop_t));
-    memset(event_loop, 0, sizeof(lwm2m_event_loop_t));
-
-    event_loop->lwm2m_ctx = lwm2m_ctx;
-    event_loop->sock = sock;
-    event_loop->handle_stdin = handle_stdin;
-    event_loop->output_err = output_err;
-    event_loop->read_from_socket = read_from_socket;
-    return event_loop;
-}
-
-int run_eventloop(lwm2m_event_loop_t *event_loop) {
-    struct timeval tv;
-    tv.tv_sec = 60;
-    tv.tv_usec = 0;
-
-    fd_set readfds;
-    lwm2m_connection_t *connList = NULL;
-
-    while (!eventloop_stop_requested()) {
-        FD_ZERO(&readfds);
-        FD_SET(event_loop->sock, &readfds);
-        if (event_loop->handle_stdin != NULL) {
-            FD_SET(STDIN_FILENO, &readfds);
-        }
-
-        int result = lwm2m_step(event_loop->lwm2m_ctx, &(tv.tv_sec));
-        if (result != 0) {
-            event_loop->output_err("lwm2m_step() failed: 0x%X\r\n", result);
-            return -1;
-        }
-
-        result = select(FD_SETSIZE, &readfds, 0, 0, &tv);
-
-        if (result < 0) {
-            if (errno != EINTR) {
-                event_loop->output_err("Error in select(): %d\r\n", errno);
-            }
-        } else if (result > 0) {
-            uint8_t buffer[MAX_PACKET_SIZE];
-
-            if (FD_ISSET(event_loop->sock, &readfds)) {
-                struct sockaddr_storage addr;
-                socklen_t addrLen;
-
-                addrLen = sizeof(addr);
-                ssize_t numBytes = event_loop->read_from_socket(event_loop->sock, buffer, &addr, &addrLen);
-
-                if (numBytes >= 0) {
-
-                    lwm2m_connection_t *connP =
-                        lwm2m_connection_find_or_new_incoming(&connList, event_loop->sock, addr, addrLen);
-                    if (connP != NULL) {
-                        lwm2m_handle_packet(event_loop->lwm2m_ctx, buffer, numBytes, connP);
-                    }
-                }
-            } else if (event_loop->handle_stdin != NULL && FD_ISSET(STDIN_FILENO, &readfds)) {
-                event_loop->handle_stdin(event_loop->lwm2m_ctx);
-            }
-        }
-    }
-
-    lwm2m_connection_free(connList);
-    return 0;
-}
-
-void lwm2m_event_loop_close(lwm2m_event_loop_t * event_loop) {
-    lwm2m_free(event_loop);
 }
 
 int main(int argc, char *argv[]) {
@@ -1353,14 +1258,13 @@ int main(int argc, char *argv[]) {
     }
 
     lwm2m_event_loop_t *event_loop = lwm2m_event_loop_init(lwm2mH, sock, handle_stdin, handle_output_err,
-                          read_from_socket_and_print_buffer);
+                                                           read_from_socket_and_print_buffer, MAX_PACKET_SIZE);
 
-    int const ret = run_eventloop(event_loop);
+    int const ret = lwm2m_event_loop_run(event_loop);
 
     close(sock);
     lwm2m_close(lwm2mH);
     lwm2m_event_loop_close(event_loop);
-
 
     return ret;
 }
