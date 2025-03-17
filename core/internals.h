@@ -566,6 +566,7 @@ void block2_delete(lwm2m_block_data_t ** pBlockDataHead, uint16_t mid);
 
 // defined in utils.c
 lwm2m_data_type_t utils_depthToDatatype(uri_depth_t depth);
+uint16_t utils_random_registration_id(const lwm2m_client_t* const client_list);
 lwm2m_version_t utils_stringToVersion(uint8_t *buffer, size_t length);
 lwm2m_binding_t utils_stringToBinding(uint8_t *buffer, size_t length);
 lwm2m_media_type_t utils_convertMediaType(coap_content_type_t type);
@@ -575,6 +576,7 @@ uint8_t utils_getResponseFormat(uint8_t accept_num,
                                 const lwm2m_data_t *dataP,
                                 bool singleResource,
                                 lwm2m_media_type_t *format);
+lwm2m_client_t * utils_find_client_by_registration_id(lwm2m_client_t * head, const uint16_t registration_id);
 int utils_isAltPathValid(const char * altPath);
 int utils_stringCopy(char * buffer, size_t length, const char * str);
 size_t utils_intToText(int64_t data, uint8_t * string, size_t length);

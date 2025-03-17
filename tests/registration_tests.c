@@ -24,8 +24,43 @@
 #include "tests.h"
 
 #include <string.h>
+#include <ctype.h>
 
 #ifdef LWM2M_SERVER_MODE
+
+#define ASSERT_RESPONSE_HEADER(packet, expected_code)                                                                  \
+    do {                                                                                                               \
+        CU_ASSERT_EQUAL(packet.version, 1);                                                                            \
+        CU_ASSERT_EQUAL(packet.type, COAP_TYPE_ACK);                                                                   \
+        CU_ASSERT_EQUAL(packet.code, expected_code);                                                                   \
+        CU_ASSERT_EQUAL(packet.mid, 0xbeef);                                                                           \
+        CU_ASSERT_EQUAL(packet.token_len, 5);                                                                          \
+        const char *expected_token = "token";                                                                          \
+        CU_ASSERT(memcmp(packet.token, expected_token, strlen(expected_token)) == 0);                                  \
+    } while (0)
+
+#define ASSERT_REGISTRATION_RESPONSE_LOCATION_PATH(packet)                                                                    \
+    do { \
+        char const * const rd_path = "rd";  \
+        CU_ASSERT_PTR_NOT_NULL_FATAL(packet.location_path);                                                            \
+        const size_t expected_path_len = strlen(rd_path);                                                                 \
+        CU_ASSERT_EQUAL(packet.location_path->len, expected_path_len);                                                 \
+        CU_ASSERT(memcmp(packet.location_path->data, rd_path, expected_path_len) == 0); \
+        CU_ASSERT_PTR_NOT_NULL(packet.location_path->next); \
+        multi_option_t * reg_id = packet.location_path->next; \
+        CU_ASSERT(1 <= reg_id->len && reg_id->len <= 5);   \
+        for (uint8_t i = 0; i < reg_id->len; ++i) { \
+            CU_ASSERT(isalnum(reg_id->data[i])); \
+        } \
+    } while (0)
+
+#define ASSERT_RESPONSE_PAYLOAD_EMPTY(packet)                                                                          \
+    do {                                                                                                               \
+        CU_ASSERT_PTR_NULL(packet.payload);                                                                            \
+        CU_ASSERT_EQUAL(packet.payload_len, 0);                                                                        \
+    } while (0)
+
+#define ARRAY_LEN(arr) (sizeof(arr) / sizeof(*arr))
 
 static void create_test_registration_message(coap_packet_t *packet) {
     coap_init_message(packet, COAP_TYPE_CON, COAP_POST, 0xbeef);
@@ -68,21 +103,15 @@ static void test_registration_message_to_server(void) {
     size_t send_buffer_len;
     uint8_t *send_buffer = test_get_response_buffer(&send_buffer_len);
     coap_packet_t actual_response_packet;
-    CU_ASSERT_EQUAL(14, send_buffer_len);
+    CU_ASSERT(18 >= send_buffer_len && send_buffer_len >= 14);
     coap_status_t status = coap_parse_message(&actual_response_packet, send_buffer, send_buffer_len);
     CU_ASSERT_EQUAL(status, NO_ERROR);
-    CU_ASSERT_EQUAL(actual_response_packet.version, 1);
-    CU_ASSERT_EQUAL(actual_response_packet.type, COAP_TYPE_ACK);
-    CU_ASSERT_EQUAL(actual_response_packet.code, COAP_201_CREATED);
-    CU_ASSERT_EQUAL(actual_response_packet.mid, 0xbeef);
-    CU_ASSERT_EQUAL(actual_response_packet.token_len, 5);
-    const char *expected_token = "token";
-    CU_ASSERT(memcmp(actual_response_packet.token, expected_token, strlen(expected_token)) == 0);
-    CU_ASSERT_PTR_NOT_NULL(actual_response_packet.location_path);
-    CU_ASSERT_EQUAL(actual_response_packet.location_path->len, 2);
-    CU_ASSERT(memcmp(actual_response_packet.location_path->data, "rd", 2) == 0);
-    CU_ASSERT_PTR_NULL(actual_response_packet.payload);
-    CU_ASSERT_EQUAL(actual_response_packet.payload_len, 0);
+
+    ASSERT_RESPONSE_HEADER(actual_response_packet, COAP_201_CREATED);
+    ASSERT_REGISTRATION_RESPONSE_LOCATION_PATH(actual_response_packet);
+
+    ASSERT_RESPONSE_PAYLOAD_EMPTY(actual_response_packet);
+
     coap_free_header(&actual_response_packet);
 }
 
