@@ -566,6 +566,7 @@ void block2_delete(lwm2m_block_data_t ** pBlockDataHead, uint16_t mid);
 
 // defined in utils.c
 lwm2m_data_type_t utils_depthToDatatype(uri_depth_t depth);
+uint16_t utils_random_registration_id(const lwm2m_client_t *client_list);
 lwm2m_version_t utils_stringToVersion(uint8_t *buffer, size_t length);
 lwm2m_binding_t utils_stringToBinding(uint8_t *buffer, size_t length);
 lwm2m_media_type_t utils_convertMediaType(coap_content_type_t type);
@@ -603,5 +604,6 @@ lwm2m_server_t * utils_findBootstrapServer(lwm2m_context_t * contextP, void * fr
 #if defined(LWM2M_SERVER_MODE) || defined(LWM2M_BOOTSTRAP_SERVER_MODE)
 lwm2m_client_t * utils_findClient(lwm2m_context_t * contextP, void * fromSessionH);
 #endif
+lwm2m_client_t *utils_find_client_by_registration_id(lwm2m_client_t *head, uint16_t registration_id);
 
 #endif
