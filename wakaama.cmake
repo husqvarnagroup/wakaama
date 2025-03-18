@@ -127,6 +127,13 @@ function(target_sources_wakaama target)
         )
     endif()
 
+    # LWM2M_COAP_MAX_MESSAGE_SIZE is needed by source files -> always set it
+    if(NOT CURRENT_TARGET_COMPILE_DEFINITIONS MATCHES "LWM2M_COAP_MAX_MESSAGE_SIZE=")
+        target_compile_definitions(${target} PRIVATE "LWM2M_COAP_MAX_MESSAGE_SIZE=2048")
+        message(STATUS "${target}: Default CoAP packet size not set, using 2048")
+    endif()
+
+
     # Detect invalid configuration already during CMake run
     if(NOT CURRENT_TARGET_COMPILE_DEFINITIONS MATCHES "LWM2M_SERVER_MODE|LWM2M_BOOTSTRAP_SERVER_MODE|LWM2M_CLIENT_MODE")
         message(FATAL_ERROR "${target}: At least one mode (client, server, bootstrap server) must be enabled!")
