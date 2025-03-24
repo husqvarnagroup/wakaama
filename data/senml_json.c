@@ -768,11 +768,11 @@ int senml_json_parse(const lwm2m_uri_t * uriP,
     count = size;
     *dataP = resultP;
 
-    LOG_ARG("Parsing successful. count: %d", count);
+    LOG_ARG("SenML JSON parsing successful. count: %d", count);
     return count;
 
 error:
-    LOG("Parsing failed");
+    LOG_ERR("SenML JSON parsing failed");
     if (parsedP != NULL)
     {
         lwm2m_data_free(count, parsedP);
@@ -1150,4 +1150,3 @@ int senml_json_serialize(const lwm2m_uri_t * uriP,
 }
 
 #endif
-

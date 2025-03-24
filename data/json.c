@@ -733,11 +733,11 @@ int json_parse(lwm2m_uri_t * uriP,
         *dataP = resultP;
     }
 
-    LOG_ARG("Parsing successful. count: %d", count);
+    LOG_ARG("JSON parsing successful. count: %d", count);
     return count;
 
 error:
-    LOG("Parsing failed");
+    LOG("JSON parsing failed");
     if (parsedP != NULL)
     {
         lwm2m_data_free(count, parsedP);
@@ -1085,4 +1085,3 @@ int json_serialize(lwm2m_uri_t * uriP,
 }
 
 #endif
-

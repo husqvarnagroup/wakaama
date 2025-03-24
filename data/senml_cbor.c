@@ -442,12 +442,12 @@ int senml_cbor_parse(const lwm2m_uri_t *uriP, const uint8_t *buffer, size_t buff
     recordArray = NULL;
 
     if (count > 0) {
-        LOG_ARG("Parsing successful. count: %d", count);
+        LOG_ARG("SenML CBOR parsing successful. count: %d", count);
         return count;
     }
 
 error:
-    LOG("Parsing failed");
+    LOG_ERR("SenML CBOR parsing failed");
     if (recordArray != NULL) {
         lwm2m_free(recordArray);
     }
