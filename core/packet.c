@@ -703,6 +703,9 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                                                               response->code)) {
                         LOG_ARG_ERR("Message %" PRIu16 " duplication not tracked", response->mid);
                     }
+                    if (coap_error_code >= COAP_400_BAD_REQUEST) {
+                        LOG_ARG_ERR("Response with error code: %" PRIu16 "", coap_error_code);
+                    }
                     coap_error_code = message_send(contextP, response, fromSessionH);
                 }
             }
