@@ -116,6 +116,12 @@ function(target_sources_wakaama target)
         message(STATUS "${target}: Default CoAP block size not set, using ${LWM2M_COAP_DEFAULT_BLOCK_SIZE}")
     endif()
 
+    # LWM2M_COAP_SEPARATE_TIMEOUT is needed by source files -> always set it
+    if(NOT CURRENT_TARGET_COMPILE_DEFINITIONS MATCHES "LWM2M_COAP_SEPARATE_TIMEOUT=")
+        target_compile_definitions(${target} PRIVATE "LWM2M_COAP_SEPARATE_TIMEOUT=${LWM2M_COAP_SEPARATE_TIMEOUT}")
+        message(STATUS "${target}: CoAP separate response timeout not set, using ${LWM2M_COAP_SEPARATE_TIMEOUT}")
+    endif()
+
     # LWM2M_COAP_DEFAULT_MAX_RETRANSMIT is needed by source files -> always set it
     if(NOT CURRENT_TARGET_COMPILE_DEFINITIONS MATCHES "LWM2M_COAP_DEFAULT_MAX_RETRANSMIT=")
         target_compile_definitions(
@@ -205,4 +211,10 @@ set(LWM2M_COAP_DEFAULT_BLOCK_SIZE
 set(LWM2M_COAP_DEFAULT_MAX_RETRANSMIT
     4
     CACHE STRING "Default CoAP max retransmissions; Used if not set on a per-target basis"
+)
+
+# The max time to wait between the empty ack and the separate response message.
+set(LWM2M_COAP_SEPARATE_TIMEOUT
+    15
+    CACHE STRING "CoAP separate response timeout; Used if not set on a per-target basis"
 )
