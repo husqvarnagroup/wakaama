@@ -437,12 +437,15 @@ static void prv_do_write_client(char * buffer,
     }
     else if(!partialUpdate)
     {
+        char block_buffer[2000];
+        memset(block_buffer, 'A', 2000);
+        block_buffer[1999] = 'B';
         result = lwm2m_dm_write(lwm2mH,
                                 clientId,
                                 &uri,
                                 LWM2M_CONTENT_TEXT,
-                                (uint8_t *)buffer,
-                                end - buffer,
+                                (uint8_t *)block_buffer,
+                                2000,
                                 partialUpdate,
                                 prv_result_callback,
                                 NULL);
