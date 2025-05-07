@@ -1743,6 +1743,12 @@ void registration_freeClient(lwm2m_context_t *const context, lwm2m_client_t *cli
 
         free_block_data(targetP);
     }
+    if (clientP->sent_block_data != NULL) {
+        lwm2m_free(clientP->sent_block_data->uri);
+        lwm2m_free(clientP->sent_block_data->payload);
+        lwm2m_free(clientP->sent_block_data);
+        clientP->sent_block_data = NULL;
+    }
     transaction_remove_client(context, clientP);
     lwm2m_session_remove(clientP->sessionH);
     lwm2m_free(clientP);
@@ -2162,6 +2168,4 @@ void registration_step(lwm2m_context_t * contextP,
         clientP = nextP;
     }
 #endif
-
 }
-

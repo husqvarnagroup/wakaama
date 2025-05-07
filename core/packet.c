@@ -731,6 +731,85 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                         }
                         coap_error_code = message_send(contextP, response, fromSessionH);
                     }
+
+                    lwm2m_client_t *client = utils_findClient(contextP, fromSessionH);
+                    if (client == NULL) {
+                        coap_error_code = COAP_500_INTERNAL_SERVER_ERROR;
+                        break;
+                    }
+                    if (done && IS_OPTION(message, COAP_OPTION_BLOCK1)) {
+                        uint32_t block_num;
+                        uint16_t block_size;
+                        uint8_t block_more;
+
+                        coap_get_header_block1(message, &block_num, &block_more, &block_size, NULL);
+
+                        switch (message->code) {
+                        case COAP_201_CREATED:
+                        case COAP_204_CHANGED:
+                            LOG_INFO("Non-piggybacked block-wise transfer finished");
+                            lwm2m_free(client->sent_block_data->uri);
+                            lwm2m_free(client->sent_block_data->payload);
+                            lwm2m_free(client->sent_block_data);
+                            client->sent_block_data = NULL;
+                            break;
+                        case COAP_231_CONTINUE:
+                            LOG_INFO("Prepare next block1 request after non-piggybacked response");
+                            lwm2m_uri_t uri;
+                            lwm2m_stringToUri(client->sent_block_data->uri, strlen(client->sent_block_data->uri), &uri);
+
+                            if (memcmp(client->sent_block_data->token, message->token, message->token_len) != 0) {
+                                LOG_ERR("Token mismatch");
+                                lwm2m_free(client->sent_block_data->uri);
+                                lwm2m_free(client->sent_block_data->payload);
+                                lwm2m_free(client->sent_block_data);
+                                client->sent_block_data = NULL;
+                                coap_error_code = COAP_500_INTERNAL_SERVER_ERROR;
+                                break;
+                            }
+
+                            lwm2m_transaction_t *next = transaction_new(
+                                client->sessionH, client->sent_block_data->code, NULL, &uri, contextP->nextMID++,
+                                client->sent_block_data->token_len, client->sent_block_data->token);
+                            if (next == NULL) {
+                                coap_error_code = COAP_500_INTERNAL_SERVER_ERROR;
+                                break;
+                            }
+                            coap_set_header_content_type(next->message, client->sent_block_data->content_type);
+                            uint8_t *transaction_payload =
+                                (uint8_t *)lwm2m_malloc(client->sent_block_data->payload_len);
+                            if (transaction_payload == NULL) {
+                                coap_error_code = COAP_500_INTERNAL_SERVER_ERROR;
+                                break;
+                            }
+                            memcpy(transaction_payload, client->sent_block_data->payload,
+                                   client->sent_block_data->payload_len);
+                            next->payload = transaction_payload;
+                            next->payload_len = client->sent_block_data->payload_len;
+
+                            block_num = block_num + 1;
+
+                            size_t remaining_payload_length = next->payload_len - block_num * (size_t)block_size;
+                            uint8_t *new_block_start = next->payload + block_num * block_size;
+                            coap_set_header_block1(next->message, block_num, remaining_payload_length > block_size,
+                                                   block_size);
+                            coap_set_payload(next->message, new_block_start, MIN(block_size, remaining_payload_length));
+
+                            contextP->transactionList =
+                                (lwm2m_transaction_t *)LWM2M_LIST_ADD(contextP->transactionList, next);
+
+                            // prv_send_new_block1(contextP, dummy, block_num, block_size);
+
+                            transaction_send(contextP, next);
+
+                            break;
+                        case COAP_413_ENTITY_TOO_LARGE:
+                            LOG_INFO("Handle entity too large");
+                            break;
+                        default:
+                            break;
+                        }
+                    }
                 }
                 break;
 
@@ -764,6 +843,11 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                     }
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
                 } else if (IS_OPTION(message, COAP_OPTION_BLOCK1)) {
+                    lwm2m_client_t *client = utils_findClient(contextP, fromSessionH);
+                    if (client == NULL) {
+                        coap_error_code = COAP_500_INTERNAL_SERVER_ERROR;
+                        break;
+                    }
                     uint32_t block_num;
                     uint16_t block_size;
 
@@ -773,6 +857,13 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                         case COAP_201_CREATED:
                         case COAP_204_CHANGED:
                         case COAP_231_CONTINUE:
+                            LOG_INFO("Piggybacked block-wise transfer finished");
+                            if (client->sent_block_data != NULL) {
+                                lwm2m_free(client->sent_block_data->uri);
+                                lwm2m_free(client->sent_block_data->payload);
+                                lwm2m_free(client->sent_block_data);
+                                client->sent_block_data = NULL;
+                            }
                             prv_send_next_block1(contextP, fromSessionH, message->mid, block_size);
                             break;
                         case COAP_413_ENTITY_TOO_LARGE:
@@ -902,4 +993,3 @@ uint8_t message_send(lwm2m_context_t * contextP,
 
     return result;
 }
-

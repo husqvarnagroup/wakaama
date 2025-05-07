@@ -619,6 +619,20 @@ struct _lwm2m_block_data_
 #endif
 };
 
+typedef struct _lwm2m_sent_block_data_ lwm2m_sent_block_data_t;
+
+#define COAP_TOKEN_SIZE 8
+
+struct _lwm2m_sent_block_data_ {
+    uint8_t token[COAP_TOKEN_SIZE]; // token of the last message sent
+    uint16_t token_len;             // length of the token
+    char *uri;
+    lwm2m_media_type_t content_type; // content type for the block-wise transfer
+    uint32_t blockNum;               // block num of the last message received
+    uint8_t code;                    // original code for the request, typically POST or PUT
+    uint8_t *payload;
+    size_t payload_len;
+};
 
 typedef struct _lwm2m_server_
 {
@@ -734,7 +748,10 @@ typedef struct _lwm2m_client_
     lwm2m_client_object_t * objectList;
     lwm2m_observation_t *   observationList;
     uint16_t                observationId;
-    lwm2m_block_data_t *    blockData;   // list to handle temporary block data.
+    lwm2m_block_data_t *blockData;            // list to handle temporary block data received from client requests
+    lwm2m_sent_block_data_t *sent_block_data; // Track block contexts for block-transfers from server to client,
+                                              // for example a write command.
+                                              // This is needed to track non-piggybacked transfers.
 } lwm2m_client_t;
 
 /*

@@ -508,7 +508,7 @@ static int prv_makeOperation(lwm2m_context_t *contextP, uint16_t clientID, lwm2m
     else if (buffer != NULL)
     {
         coap_set_header_content_type(transaction->message, format);
-        if (!transaction_set_payload(transaction, buffer, length)) {
+        if (!transaction_set_payload(transaction, buffer, length, clientP)) {
             transaction_free(transaction);
             return COAP_500_INTERNAL_SERVER_ERROR;
         }

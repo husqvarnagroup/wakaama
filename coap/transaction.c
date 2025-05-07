@@ -494,7 +494,7 @@ void transaction_step(lwm2m_context_t * contextP,
     }
 }
 
-bool transaction_set_payload(lwm2m_transaction_t *transaction, uint8_t *buffer, size_t length) {
+bool transaction_set_payload(lwm2m_transaction_t *transaction, uint8_t *buffer, size_t length, lwm2m_client_t *client) {
     // copy payload as we might need it beyond scope of the current request / method call (e.g. in case of
     // retransmissions or block transfer)
     uint8_t *transaction_payload = (uint8_t *)lwm2m_malloc(length);
@@ -508,6 +508,39 @@ bool transaction_set_payload(lwm2m_transaction_t *transaction, uint8_t *buffer, 
     const uint16_t lwm2m_coap_block_size = lwm2m_get_coap_block_size();
     if (length > lwm2m_coap_block_size) {
         coap_set_header_block1(transaction->message, 0, true, lwm2m_coap_block_size);
+
+        /* Track block1 context to continue the block-wise transfer for non-piggybacked responses. */
+        if (client->sent_block_data != NULL) {
+            LOG_WARN("There is already a block transfer in progress");
+            return false;
+        }
+        lwm2m_sent_block_data_t *block_data = lwm2m_malloc(sizeof(lwm2m_sent_block_data_t));
+        if (block_data == NULL) {
+            return false;
+        }
+        coap_packet_t *message = (coap_packet_t *)transaction->message;
+        char *uri = coap_get_multi_option_as_path_string(message->uri_path);
+        if (uri == NULL) {
+            lwm2m_free(block_data);
+            return false;
+        }
+        memcpy(block_data->token, message->token, message->token_len);
+        block_data->token_len = message->token_len;
+        block_data->uri = uri;
+        block_data->content_type = message->content_type;
+        block_data->blockNum = 0;
+        block_data->code = message->code;
+        uint8_t *payload = lwm2m_malloc(transaction->payload_len);
+        if (payload == NULL) {
+            lwm2m_free(block_data);
+            lwm2m_free(uri);
+            return false;
+        }
+        /* save the payload in the block_data context struct */
+        memcpy(payload, transaction->payload, transaction->payload_len);
+        block_data->payload = payload;
+        block_data->payload_len = transaction->payload_len;
+        client->sent_block_data = block_data;
     }
 
     coap_set_payload(transaction->message, buffer, MIN(length, lwm2m_coap_block_size));

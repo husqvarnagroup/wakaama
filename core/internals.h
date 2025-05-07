@@ -264,7 +264,7 @@ bool transaction_handleResponse(lwm2m_context_t * contextP, void * fromSessionH,
 void transaction_step(lwm2m_context_t * contextP, time_t currentTime, time_t * timeoutP);
 bool transaction_free_userData(lwm2m_context_t * context, lwm2m_transaction_t * transaction);
 void transaction_remove_client(lwm2m_context_t *contextP, lwm2m_client_t *clientP);
-bool transaction_set_payload(lwm2m_transaction_t *transaction, uint8_t *buffer, size_t length);
+bool transaction_set_payload(lwm2m_transaction_t *transaction, uint8_t *buffer, size_t length, lwm2m_client_t *client);
 
 #ifdef LWM2M_SUPPORT_TLV
 // defined in tlv.c
