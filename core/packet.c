@@ -226,110 +226,131 @@ static uint8_t handle_request(lwm2m_context_t * contextP,
     return result;
 }
 
-static lwm2m_transaction_t * prv_get_transaction(lwm2m_context_t * contextP, void * sessionH, uint16_t mid)
-{
-    lwm2m_transaction_t * transaction;
-
-    transaction = contextP->transactionList;
-    while (transaction != NULL && (lwm2m_session_is_equal(sessionH, transaction->peerH, contextP->userData) == false ||
-                                   transaction->mID != mid)) {
-        transaction = transaction->next;
+/**
+ * @brief Find a transaction by message ID.
+ */
+static lwm2m_transaction_t *transaction_get_by_mid(lwm2m_context_t *contextP, void *sessionH, uint16_t mid) {
+    lwm2m_transaction_t *transaction = contextP->transactionList;
+    while (transaction != NULL) {
+        if (lwm2m_session_is_equal(sessionH, transaction->peerH, contextP->userData) == false) {
+            transaction = transaction->next;
+            continue;
+        }
+        if (transaction->mID == mid) {
+            return transaction;
+        }
     }
-
-    if (transaction != NULL &&
-        (lwm2m_session_is_equal(sessionH, transaction->peerH, contextP->userData) == true && transaction->mID == mid)) {
-        return transaction;
-    }
-
     return NULL;
 }
 
-// limited clone of transaction to be used by block transfers
-static lwm2m_transaction_t * prv_create_next_block_transaction(lwm2m_transaction_t * transaction, uint16_t nextMID){
-    static coap_packet_t message[1];
-    if (0 != coap_parse_message(message, transaction->buffer, transaction->buffer_len)){
+/**
+ * @brief Find a transaction by CoAP token.
+ */
+static lwm2m_transaction_t *transaction_get_by_token(lwm2m_context_t *contextP, void *sessionH, uint8_t *token,
+                                                     uint8_t token_len) {
+    lwm2m_transaction_t *transaction = contextP->transactionList;
+    while (transaction != NULL) {
+        if (lwm2m_session_is_equal(sessionH, transaction->peerH, contextP->userData) == false) {
+            transaction = transaction->next;
+            continue;
+        }
+        coap_packet_t *message = (coap_packet_t *)transaction->message;
+        if (message == NULL) {
+            transaction = transaction->next;
+            continue;
+        }
+        if (token != NULL && token_len > 0) {
+            if (message->token_len != token_len) {
+                transaction = transaction->next;
+                continue;
+            }
+            if (memcmp(message->token, token, token_len) == 0) {
+                return transaction;
+            }
+        }
+    }
+    return NULL;
+}
+
+/**
+ * @brief Create a new transaction for the next block-wise transfer request.
+ */
+static lwm2m_transaction_t *transaction_create_next_block(lwm2m_transaction_t *transaction, uint16_t nextMID) {
+    static coap_packet_t old_message[1];
+    if (0 != coap_parse_message(old_message, transaction->buffer, transaction->buffer_len)) {
         return NULL;
     }
-
-    lwm2m_transaction_t * clone = transaction_new(transaction->peerH, (coap_method_t) message->code, NULL, NULL, nextMID, message->token_len, message->token);
+    lwm2m_uri_t uri;
+    uri_decode(NULL, old_message->uri_path, old_message->code, &uri);
+    lwm2m_transaction_t *clone = transaction_new(transaction->peerH, (coap_method_t)old_message->code, NULL, &uri,
+                                                 nextMID, old_message->token_len, old_message->token);
     if (clone == NULL) return NULL;
 
-    coap_set_header_content_type(clone->message, message->type);
+    coap_set_header_content_type(clone->message, old_message->type);
 
-    if (message->proxy_uri != NULL)
-    {
-        char  str[message->proxy_uri_len + 1];
-        str[message->proxy_uri_len] = '\0';
-        memcpy(str, message->proxy_uri, message->proxy_uri_len);
+    if (old_message->proxy_uri != NULL) {
+        char str[old_message->proxy_uri_len + 1];
+        str[old_message->proxy_uri_len] = '\0';
+        memcpy(str, old_message->proxy_uri, old_message->proxy_uri_len);
         coap_set_header_proxy_uri(clone->message, str);
     }
 
-    if (IS_OPTION(message, COAP_OPTION_ETAG))
-    {
-        coap_set_header_etag(clone->message, message->etag, message->etag_len);
+    if (IS_OPTION(old_message, COAP_OPTION_ETAG)) {
+        coap_set_header_etag(clone->message, old_message->etag, old_message->etag_len);
     }
 
-    if (message->uri_host != NULL)
-    {
-        char  str[message->uri_host_len + 1];
-        str[message->uri_host_len] = '\0';
-        memcpy(str, message->uri_host, message->uri_host_len);
+    if (old_message->uri_host != NULL) {
+        char str[old_message->uri_host_len + 1];
+        str[old_message->uri_host_len] = '\0';
+        memcpy(str, old_message->uri_host, old_message->uri_host_len);
         coap_set_header_uri_host(clone->message, str);
     }
 
-    if (IS_OPTION(message, COAP_OPTION_URI_PORT))
-    {
-        coap_set_header_uri_port(clone->message, message->uri_port);
+    if (IS_OPTION(old_message, COAP_OPTION_URI_PORT)) {
+        coap_set_header_uri_port(clone->message, old_message->uri_port);
     }
 
-    if(IS_OPTION(message, COAP_OPTION_LOCATION_PATH))
-    {
-        ((coap_packet_t *)clone->message)->location_path = message->location_path;
+    if (IS_OPTION(old_message, COAP_OPTION_LOCATION_PATH)) {
+        ((coap_packet_t *)clone->message)->location_path = old_message->location_path;
         SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_LOCATION_PATH);
     }
 
-    if (message->location_query != NULL)
-    {
-        char  str[message->location_query_len + 1];
-        str[message->location_query_len] = '\0';
-        memcpy(str, message->location_query, message->location_query_len);
+    if (old_message->location_query != NULL) {
+        char str[old_message->location_query_len + 1];
+        str[old_message->location_query_len] = '\0';
+        memcpy(str, old_message->location_query, old_message->location_query_len);
         coap_set_header_location_query(clone->message, str);
     }
 
-    if(IS_OPTION(message, COAP_OPTION_CONTENT_TYPE))
-    {
-        ((coap_packet_t *)clone->message)->content_type = message->content_type;
+    if (IS_OPTION(old_message, COAP_OPTION_CONTENT_TYPE)) {
+        ((coap_packet_t *)clone->message)->content_type = old_message->content_type;
         SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_CONTENT_TYPE);
     }
 
-    if(IS_OPTION(message, COAP_OPTION_URI_PATH))
-    {
-        ((coap_packet_t *)clone->message)->uri_path = message->uri_path;
+    /* Add the Uri-Path option to the new message if the old already contained this option.
+     * It may make sense to check if the new message has the filed uri_path set. */
+    if (IS_OPTION(old_message, COAP_OPTION_URI_PATH)) {
         SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_URI_PATH);
     }
 
-    if (IS_OPTION(message, COAP_OPTION_OBSERVE))
-    {
-        coap_set_header_observe(clone->message, message->observe);
+    if (IS_OPTION(old_message, COAP_OPTION_OBSERVE)) {
+        coap_set_header_observe(clone->message, old_message->observe);
     }
 
-    for (int i = 0; i < message->accept_num; i++) {
-        coap_set_header_accept(clone->message, message->accept[i]);
+    for (int i = 0; i < old_message->accept_num; i++) {
+        coap_set_header_accept(clone->message, old_message->accept[i]);
     }
 
-    if (IS_OPTION(message, COAP_OPTION_IF_MATCH))
-    {
-        coap_set_header_if_match(clone->message, message->if_match, message->if_match_len);
+    if (IS_OPTION(old_message, COAP_OPTION_IF_MATCH)) {
+        coap_set_header_if_match(clone->message, old_message->if_match, old_message->if_match_len);
     }
 
-    if(IS_OPTION(message, COAP_OPTION_URI_QUERY))
-    {
-        ((coap_packet_t *)clone->message)->uri_query = message->uri_query;
+    if (IS_OPTION(old_message, COAP_OPTION_URI_QUERY)) {
+        ((coap_packet_t *)clone->message)->uri_query = old_message->uri_query;
         SET_OPTION((coap_packet_t *)clone->message, COAP_OPTION_URI_QUERY);
     }
 
-    if (IS_OPTION(message, COAP_OPTION_IF_NONE_MATCH))
-    {
+    if (IS_OPTION(old_message, COAP_OPTION_IF_NONE_MATCH)) {
         coap_set_header_if_none_match(clone->message);
     }
 
@@ -345,15 +366,18 @@ static lwm2m_transaction_t * prv_create_next_block_transaction(lwm2m_transaction
     clone->userData = transaction->userData;
     return clone;
 }
-static int prv_send_new_block1(lwm2m_context_t * contextP, lwm2m_transaction_t * previous, uint32_t block_num, uint16_t block_size)
-{
-    lwm2m_transaction_t * next;
+
+static lwm2m_transaction_t *transaction_get_new_block1(lwm2m_context_t *contextP, lwm2m_transaction_t *previous,
+                                                       uint32_t block_num, uint16_t block_size) {
+    lwm2m_transaction_t *next;
     // Done sending block
     if (block_num * (size_t)block_size >= previous->payload_len)
-        return 0;
+        return NULL;
 
-    next = prv_create_next_block_transaction(previous, contextP->nextMID++);
-    if (next == NULL) return COAP_500_INTERNAL_SERVER_ERROR;
+    next = transaction_create_next_block(previous, contextP->nextMID++);
+    if (next == NULL) {
+        return NULL;
+    }
 
     size_t remaining_payload_length = next->payload_len - block_num * (size_t)block_size;
     uint8_t *new_block_start = next->payload + block_num * block_size;
@@ -362,17 +386,19 @@ static int prv_send_new_block1(lwm2m_context_t * contextP, lwm2m_transaction_t *
     coap_set_payload(next->message, new_block_start, MIN(block_size, remaining_payload_length));
 
     contextP->transactionList = (lwm2m_transaction_t *)LWM2M_LIST_ADD(contextP->transactionList, next);
-    return transaction_send(contextP, next);
+    return next;
 }
 
-static int prv_send_next_block1(lwm2m_context_t * contextP, void * sessionH, uint16_t mid, uint16_t block_size)
-{
+static lwm2m_transaction_t *transaction_prepare_next_block1_by_mid(lwm2m_context_t *contextP, void *sessionH,
+                                                                   uint16_t mid, uint16_t block_size) {
     lwm2m_transaction_t * transaction;
     coap_packet_t * message;
     uint32_t block_num;
 
-    transaction = prv_get_transaction(contextP, sessionH, mid);
-    if(transaction == NULL) return COAP_500_INTERNAL_SERVER_ERROR;
+    transaction = transaction_get_by_mid(contextP, sessionH, mid);
+    if (transaction == NULL) {
+        return NULL;
+    }
 
     message = (coap_packet_t *) transaction->message;
 
@@ -388,14 +414,42 @@ static int prv_send_next_block1(lwm2m_context_t * contextP, void * sessionH, uin
         block_num = message->block1_num + 1;
     }
 
-    return prv_send_new_block1(contextP, transaction, block_num, block_size);
+    return transaction_get_new_block1(contextP, transaction, block_num, block_size);
 }
 
-static int prv_change_to_block1(lwm2m_context_t * contextP, void * sessionH, uint16_t mid, uint32_t size){
+static lwm2m_transaction_t *transaction_prepare_next_block1_by_token(lwm2m_context_t *contextP, void *sessionH,
+                                                                     uint16_t block_size, uint8_t *token,
+                                                                     uint8_t token_len) {
+    lwm2m_transaction_t *transaction;
+    coap_packet_t *message;
+    uint32_t block_num;
+
+    transaction = transaction_get_by_token(contextP, sessionH, token, token_len);
+    if (transaction == NULL) {
+        return NULL;
+    }
+
+    message = (coap_packet_t *)transaction->message;
+
+    // safeguard, requested block size should not be greater or zero
+    if (block_size > message->block1_size || block_size == 0)
+        block_size = message->block1_size;
+
+    if (message->block1_num == 0) {
+        block_num = message->block1_size / block_size;
+    } else {
+        block_num = message->block1_num + 1;
+    }
+
+    return transaction_get_new_block1(contextP, transaction, block_num, block_size);
+}
+
+static lwm2m_transaction_t *transaction_change_to_block1(lwm2m_context_t *contextP, void *sessionH, uint16_t mid,
+                                                         uint32_t size) {
     lwm2m_transaction_t * transaction;
     uint16_t block_size = 16;
 
-    transaction = prv_get_transaction(contextP, sessionH, mid);
+    transaction = transaction_get_by_mid(contextP, sessionH, mid);
 
     for (uint16_t n = 1; 16 << n <= (uint16_t)size; n++) {
         block_size = 16 << n;
@@ -403,35 +457,67 @@ static int prv_change_to_block1(lwm2m_context_t * contextP, void * sessionH, uin
 
     block_size = MIN(block_size, lwm2m_get_coap_block_size());
 
-    return prv_send_new_block1(contextP, transaction, 0, block_size);
+    return transaction_get_new_block1(contextP, transaction, 0, block_size);
 }
 
-
-static int prv_retry_block1(lwm2m_context_t * contextP, void * sessionH, uint16_t mid, uint16_t block_size)
-{
+static lwm2m_transaction_t *transaction_retry_block1_by_mid(lwm2m_context_t *contextP, void *sessionH, uint16_t mid,
+                                                            uint16_t block_size) {
     lwm2m_transaction_t * transaction;
     coap_packet_t * message;
     uint32_t block_num;
 
-    transaction = prv_get_transaction(contextP, sessionH, mid);
-    if(transaction == NULL) return COAP_500_INTERNAL_SERVER_ERROR;
-
+    transaction = transaction_get_by_mid(contextP, sessionH, mid);
+    if (transaction == NULL) {
+        return NULL;
+    }
     message = (coap_packet_t *) transaction->message;
     if(!IS_OPTION(message, COAP_OPTION_BLOCK1)){
         // This wasn't a block option, just switch to block1 transfer with the given size
-        return prv_send_new_block1(contextP, transaction, 0, block_size);
+        return transaction_get_new_block1(contextP, transaction, 0, block_size);
     }
 
     // safeguard, requested block size should not be greater or zero
-    if (block_size == message->block1_size && block_size > 16) block_size *= 0.5;
-    if (block_size >= message->block1_size || block_size == 0) return COAP_400_BAD_REQUEST;
+    // TODO: Why half the block size?
+    if (block_size == message->block1_size && block_size > 16) {
+        block_size = block_size >> 1;
+    }
+    if (block_size >= message->block1_size || block_size == 0) {
+        return NULL;
+    }
+    block_num = message->block1_num;
+
+    return transaction_get_new_block1(contextP, transaction, block_num, block_size);
+}
+
+static lwm2m_transaction_t *transaction_retry_block1_by_token(lwm2m_context_t *contextP, void *sessionH, uint16_t mid,
+                                                              uint16_t block_size, uint8_t *token, uint8_t token_len) {
+    lwm2m_transaction_t *transaction;
+    coap_packet_t *message;
+    uint32_t block_num;
+
+    transaction = transaction_get_by_token(contextP, sessionH, token, token_len);
+    if (transaction == NULL) {
+        return NULL;
+    }
+
+    message = (coap_packet_t *)transaction->message;
+    if (!IS_OPTION(message, COAP_OPTION_BLOCK1)) {
+        // This wasn't a block option, just switch to block1 transfer with the given size
+        return transaction_get_new_block1(contextP, transaction, 0, block_size);
+    }
+
+    // safeguard, requested block size should not be greater or zero
+    if (block_size == message->block1_size && block_size > 16) {
+        block_size = block_size >> 1;
+    }
+    if (block_size >= message->block1_size || block_size == 0) {
+        return NULL;
+    }
 
     block_num = message->block1_num;
 
-    return prv_send_new_block1(contextP, transaction, block_num, block_size);
+    return transaction_get_new_block1(contextP, transaction, block_num, block_size);
 }
-
-
 
 static int prv_send_get_block2(lwm2m_context_t * contextP,
                                     void * sessionH,
@@ -446,7 +532,7 @@ static int prv_send_get_block2(lwm2m_context_t * contextP,
     uint16_t nextMID;
 
     // get current transaction
-    transaction = prv_get_transaction(contextP, sessionH, currentMID);
+    transaction = transaction_get_by_mid(contextP, sessionH, currentMID);
     if(transaction == NULL) return COAP_500_INTERNAL_SERVER_ERROR;
 
     // Are we retrying something that already is a block 2 request?
@@ -455,7 +541,7 @@ static int prv_send_get_block2(lwm2m_context_t * contextP,
 
     // create new transaction
     nextMID = contextP->nextMID++;
-    next = prv_create_next_block_transaction(transaction, nextMID);
+    next = transaction_create_next_block(transaction, nextMID);
     if (next == NULL) return COAP_500_INTERNAL_SERVER_ERROR;
 
     // set block2 header
@@ -713,16 +799,44 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                     }
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
                 } else {
+                    lwm2m_transaction_t *next_block_transaction = NULL;
+                    // check if next block should be sent
+                    if (IS_OPTION(message, COAP_OPTION_BLOCK1)) {
+                        uint32_t block_num;
+                        uint16_t block_size;
 
+                        coap_get_header_block1(message, &block_num, NULL, &block_size, NULL);
+
+                        switch (message->code) {
+                        case COAP_201_CREATED:
+                        case COAP_204_CHANGED:
+                        case COAP_231_CONTINUE:
+                            next_block_transaction = transaction_prepare_next_block1_by_token(
+                                contextP, fromSessionH, block_size, message->token, message->token_len);
+                            break;
+                        case COAP_413_ENTITY_TOO_LARGE:
+                            // resend with smaller block size as specified in the block 1 option give by the peer
+                            if (block_num > 0)
+                                break;
+                            transaction_retry_block1_by_token(contextP, fromSessionH, message->mid, block_size,
+                                                              message->token, message->token_len);
+                        default:
+                            break;
+                        }
+                    }
+                    // send ack, this also removes the transaction
                     bool done = transaction_handleResponse(contextP, fromSessionH, message, response);
-
-    #ifdef LWM2M_SERVER_MODE
+                    // send next block if needed
+                    if (done && next_block_transaction != NULL) {
+                        transaction_send(contextP, next_block_transaction);
+                    }
+#ifdef LWM2M_SERVER_MODE
                     if (!done && IS_OPTION(message, COAP_OPTION_OBSERVE) &&
                         ((message->code == COAP_204_CHANGED) || (message->code == COAP_205_CONTENT)))
                     {
                         done = observe_handleNotify(contextP, fromSessionH, message, response);
                     }
-    #endif
+#endif
                     if (!done && message->type == COAP_TYPE_CON )
                     {
                         coap_init_message(response, COAP_TYPE_ACK, 0, message->mid);
@@ -773,12 +887,12 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                         case COAP_201_CREATED:
                         case COAP_204_CHANGED:
                         case COAP_231_CONTINUE:
-                            prv_send_next_block1(contextP, fromSessionH, message->mid, block_size);
+                            transaction_prepare_next_block1_by_mid(contextP, fromSessionH, message->mid, block_size);
                             break;
                         case COAP_413_ENTITY_TOO_LARGE:
                             // resend with smaller block size as specified in the block 1 option
                             if (block_num > 0) break;
-                            prv_retry_block1(contextP, fromSessionH, message->mid, block_size);
+                            transaction_retry_block1_by_mid(contextP, fromSessionH, message->mid, block_size);
                         default:
                             break;
                     }
@@ -840,7 +954,7 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                     All our responses are piggyback so this must be the result of request being too large (not a separate CON)
                     switch to a block1 request.
                     */
-                    prv_change_to_block1(contextP, fromSessionH, message->mid, message->size);
+                    transaction_change_to_block1(contextP, fromSessionH, message->mid, message->size);
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
                 } else {
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
@@ -902,4 +1016,3 @@ uint8_t message_send(lwm2m_context_t * contextP,
 
     return result;
 }
-
