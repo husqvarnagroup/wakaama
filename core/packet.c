@@ -878,6 +878,7 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                     }
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
                 } else if (IS_OPTION(message, COAP_OPTION_BLOCK1)) {
+                    lwm2m_transaction_t *next_block_transaction = NULL;
                     uint32_t block_num;
                     uint16_t block_size;
 
@@ -887,14 +888,21 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                         case COAP_201_CREATED:
                         case COAP_204_CHANGED:
                         case COAP_231_CONTINUE:
-                            transaction_prepare_next_block1_by_mid(contextP, fromSessionH, message->mid, block_size);
+                            next_block_transaction = transaction_prepare_next_block1_by_mid(contextP, fromSessionH,
+                                                                                            message->mid, block_size);
                             break;
                         case COAP_413_ENTITY_TOO_LARGE:
                             // resend with smaller block size as specified in the block 1 option
-                            if (block_num > 0) break;
-                            transaction_retry_block1_by_mid(contextP, fromSessionH, message->mid, block_size);
+                            if (block_num > 0) {
+                                break;
+                            }
+                            next_block_transaction =
+                                transaction_retry_block1_by_mid(contextP, fromSessionH, message->mid, block_size);
                         default:
                             break;
+                    }
+                    if (next_block_transaction != NULL) {
+                        transaction_send(contextP, next_block_transaction);
                     }
 
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
