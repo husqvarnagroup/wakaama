@@ -985,9 +985,13 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                     All our responses are piggyback so this must be the result of request being too large (not a separate CON)
                     switch to a block1 request.
                     */
+                    LOG_WARN("This code is bittle, be warned!");
                     transaction_change_to_block1(contextP, fromSessionH, message->mid, message->size);
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
                 } else {
+                    if (message->code >= COAP_400_BAD_REQUEST) {
+                        LOG_ARG_WARN("Received ACK with error code: %u.%02u", message->code >> 5, message->code & 0x1F);
+                    }
                     transaction_handleResponse(contextP, fromSessionH, message, NULL);
                 }
                 break;
