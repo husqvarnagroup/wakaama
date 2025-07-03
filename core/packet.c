@@ -1004,12 +1004,12 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
     } /* if (parsed correctly) */
     else
     {
-        LOG_ARG("Message parsing failed %u.%02u", coap_error_code >> 5, coap_error_code & 0x1F);
+        LOG_ARG_ERR("Message parsing failed %u.%02u", coap_error_code >> 5, coap_error_code & 0x1F);
     }
 
     if (coap_error_code != NO_ERROR && coap_error_code != COAP_IGNORE)
     {
-        LOG_ARG("ERROR %u: %s", coap_error_code, STR_NULL2EMPTY(coap_error_message));
+        LOG_ARG_ERR("ERROR %u: %s", coap_error_code, STR_NULL2EMPTY(coap_error_message));
 
         /* Set to sendable error code. */
         if (coap_error_code >= 192)
