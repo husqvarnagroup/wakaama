@@ -291,13 +291,13 @@ int cbor_get_singular(const uint8_t *buffer, size_t bufferLen, lwm2m_data_t *dat
  * @return 0 on error, else number of bytes
  */
 static int prv_serialize_value(uint8_t *buffer, size_t bufferLen, uint8_t mt, uint64_t val) {
-    LOG_ARG("bufferLen: %zu, mt: %d, val: %lu (0x%lx)", bufferLen, mt, (unsigned long)val, (unsigned long)val);
+    LOG_ARG_DBG("bufferLen: %zu, mt: %d, val: %lu (0x%lx)", bufferLen, mt, (unsigned long)val, (unsigned long)val);
     int buffer_index = 0;
     uint8_t ai = CBOR_AI_EIGHT_BYTE_VALUE;
 
     /* Calculate additional information (ai) bits. */
-    if (val < 0xff) {
-        if ((uint8_t)val < 24) {
+    if (val <= 0xff) {
+        if ((uint8_t)val <= 23) {
             /* Value fits in a single byte. */
             if (bufferLen < 1)
                 return 0;
@@ -308,12 +308,12 @@ static int prv_serialize_value(uint8_t *buffer, size_t bufferLen, uint8_t mt, ui
                 return 0;
             ai = CBOR_AI_ONE_BYTE_VALUE;
         }
-    } else if (val < 0xffff) {
+    } else if (val <= 0xffff) {
         /* Value needs two extra bytes. */
         if (bufferLen < 3)
             return 0;
         ai = CBOR_AI_TWO_BYTE_VALUE;
-    } else if (val < 0xffffffff) {
+    } else if (val <= 0xffffffff) {
         /* Value needs four extra bytes. */
         if (bufferLen < 5)
             return 0;
