@@ -75,7 +75,7 @@ static void assert_response(coap_packet_t actual_response_packet) {
     CU_ASSERT_EQUAL(actual_response_packet.mid, 0xbeef);
     CU_ASSERT_EQUAL(actual_response_packet.token_len, 5);
     const char *expected_token = "token";
-    CU_ASSERT(memcmp(actual_response_packet.token, expected_token, strlen(expected_token)) == 0);
+    CU_ASSERT(memcmp(actual_response_packet.token, expected_token, strlen(expected_token)) == 0); // NOSONAR
     CU_ASSERT_PTR_NOT_NULL(actual_response_packet.location_path);
     CU_ASSERT_EQUAL(actual_response_packet.location_path->len, 2);
     CU_ASSERT(memcmp(actual_response_packet.location_path->data, "rd", 2) == 0);

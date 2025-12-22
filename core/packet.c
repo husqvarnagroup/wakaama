@@ -518,7 +518,7 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                 /* Internal error occurred, return silently. */
                 return;
             }
-            LOG_WARN("Message %d already seen in transmission window", message->mid);
+            LOG_DBG("Message %d already seen in transmission window", message->mid);
             coap_error_code = message_send(contextP, response, fromSessionH);
             if (coap_error_code != NO_ERROR) {
                 LOG_ERR("Warning: Message already seen in transmission window");
@@ -924,7 +924,7 @@ size_t message_serialize(coap_packet_t *packet, uint8_t **serializedMessage) {
 
     pktBufferLen = coap_serialize_message(packet, *serializedMessage);
     coap_free_header(packet);
-    LOG_ARG("coap_serialize_message() returned %zd", pktBufferLen);
+    LOG_ARG_DBG("coap_serialize_message() returned %zd", pktBufferLen);
     return pktBufferLen;
 }
 
@@ -936,7 +936,7 @@ uint8_t message_send(lwm2m_context_t * contextP,
     uint8_t *pktBuffer = NULL;
     size_t pktBufferLen;
 
-    LOG("Entering");
+    LOG_DBG("Entering");
 
     coap_msg_dedup_t *dedup = coap_deduplication_find(contextP->message_dedup, message->mid, sessionH);
     if (dedup != NULL) {

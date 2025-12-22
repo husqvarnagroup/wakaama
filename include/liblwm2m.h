@@ -829,6 +829,7 @@ typedef int (*lwm2m_bootstrap_callback_t)(lwm2m_context_t *contextP, void *sessi
                                           void *userData);
 #endif
 
+struct _coap_msg_dedup_;
 typedef struct _coap_msg_dedup_ coap_msg_dedup_t;
 
 struct _lwm2m_context_

@@ -8,14 +8,14 @@
 
 #include <liblwm2m.h>
 
-typedef struct _coap_msg_dedup_ {
+struct _coap_msg_dedup_ {
     struct _coap_msg_dedup_ *next;
     uint16_t mid;
     uint8_t *full_response;
     size_t full_response_len;
     void *session;
     time_t timestamp;
-} coap_msg_dedup_t;
+};
 
 /**
  * Cleanup message ids after EXCHANGE_LIFETIME.
