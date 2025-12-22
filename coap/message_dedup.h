@@ -1,6 +1,8 @@
 #ifndef _COAP_MESSAGE_DEDUP_H_
 #define _COAP_MESSAGE_DEDUP_H_
 
+#include "er-coap-13/er-coap-13.h"
+
 #include <stdint.h>
 #include <time.h>
 
@@ -9,8 +11,9 @@
 typedef struct _coap_msg_dedup_ {
     struct _coap_msg_dedup_ *next;
     uint16_t mid;
+    uint8_t *full_response;
+    size_t full_response_len;
     void *session;
-    uint8_t coap_response_code;
     time_t timestamp;
 } coap_msg_dedup_t;
 
@@ -31,7 +34,7 @@ void coap_cleanup_message_deduplication_step(coap_msg_dedup_t **message_dedup, t
  * @return true if the message was already seen within in the EXCHANGE_LIFETIME window, false otherwise.
  */
 bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, uint16_t mid, const void *session,
-                                    uint8_t *coap_response_code);
+                                    uint8_t **response, size_t *response_len);
 
 /**
  * Set response code to be used in acks to a duplicate message. Acknowledgements to duplicate messages must have the
@@ -42,8 +45,10 @@ bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, uint16_t m
  * @param coap_response_code CoAP response code to be used for answering duplicate messages
  * @return false if no matching message was found, this is an internal error and should not happen
  */
-bool coap_deduplication_set_response_code(coap_msg_dedup_t **message_dedup, uint16_t mid, const void *session,
-                                          uint8_t coap_response_code);
+bool coap_deduplication_set_response(coap_msg_dedup_t **message_dedup, uint16_t mid, const void *session,
+                                     coap_packet_t *coap_response);
+
+coap_msg_dedup_t *coap_deduplication_find(coap_msg_dedup_t *message_dedup, uint16_t mid, const void *session);
 
 /**
  * Remove and free the whole message deduplication list

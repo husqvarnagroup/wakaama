@@ -66,6 +66,23 @@ static void create_test_registration_message(coap_packet_t *packet, const lwm2m_
     coap_set_payload(packet, payload, strlen(payload));
 }
 
+#define ASSERT_RESPONSE(actual_response_packet) assert_response(actual_response_packet)
+
+static void assert_response(coap_packet_t actual_response_packet) {
+    CU_ASSERT_EQUAL(actual_response_packet.version, 1);
+    CU_ASSERT_EQUAL(actual_response_packet.type, COAP_TYPE_ACK);
+    CU_ASSERT_EQUAL(actual_response_packet.code, COAP_201_CREATED);
+    CU_ASSERT_EQUAL(actual_response_packet.mid, 0xbeef);
+    CU_ASSERT_EQUAL(actual_response_packet.token_len, 5);
+    const char *expected_token = "token";
+    CU_ASSERT(memcmp(actual_response_packet.token, expected_token, strlen(expected_token)) == 0);
+    CU_ASSERT_PTR_NOT_NULL(actual_response_packet.location_path);
+    CU_ASSERT_EQUAL(actual_response_packet.location_path->len, 2);
+    CU_ASSERT(memcmp(actual_response_packet.location_path->data, "rd", 2) == 0);
+    CU_ASSERT_PTR_NULL(actual_response_packet.payload);
+    CU_ASSERT_EQUAL(actual_response_packet.payload_len, 0);
+}
+
 static void test_registration_message_to_server(void) {
     /* arrange */
     coap_packet_t packet;
@@ -79,9 +96,9 @@ static void test_registration_message_to_server(void) {
     coap_free_header(&packet);
 
     /* act */
-    lwm2m_context_t *const server_ctx = lwm2m_init(NULL);
+    lwm2m_context_t *server_ctx = lwm2m_init(NULL);
+
     lwm2m_handle_packet(server_ctx, reg_coap_msg, msg_size, NULL);
-    lwm2m_close(server_ctx);
 
     /* assert */
     size_t send_buffer_len;
@@ -90,12 +107,24 @@ static void test_registration_message_to_server(void) {
     CU_ASSERT_EQUAL(14, send_buffer_len);
     coap_status_t status = coap_parse_message(&actual_response_packet, send_buffer, send_buffer_len);
     CU_ASSERT_EQUAL(status, NO_ERROR);
-
-    ASSERT_RESPONSE_HEADER(actual_response_packet, COAP_201_CREATED);
-    ASSERT_RESPONSE_LOCATION_PATH(actual_response_packet, "rd");
-    ASSERT_RESPONSE_PAYLOAD_EMPTY(actual_response_packet);
-
+    ASSERT_RESPONSE(actual_response_packet);
     coap_free_header(&actual_response_packet);
+    lwm2m_close(server_ctx);
+
+    server_ctx = lwm2m_init(NULL);
+
+    lwm2m_handle_packet(server_ctx, reg_coap_msg, msg_size, NULL);
+
+    /* assert */
+    send_buffer = test_get_response_buffer(&send_buffer_len);
+    CU_ASSERT(18 >= send_buffer_len && send_buffer_len >= 14);
+    coap_packet_t actual_response_packet_2nd;
+    status = coap_parse_message(&actual_response_packet_2nd, send_buffer, send_buffer_len);
+    CU_ASSERT_EQUAL(status, NO_ERROR);
+    ASSERT_RESPONSE(actual_response_packet_2nd);
+    coap_free_header(&actual_response_packet_2nd);
+
+    lwm2m_close(server_ctx);
 }
 
 static void test_registration_message_to_server_wrong_content_type(void) {
