@@ -30,7 +30,8 @@ void coap_cleanup_message_deduplication_step(coap_msg_dedup_t **message_dedup, t
  * @param message_dedup list of message ids for deduplication
  * @param mid message id
  * @param session pointer to the session the message was received from
- * @param coap_response_code CoAP response code to be used for answering duplicate messages
+ * @param response serialized CoAP response to be used for retransmissions
+ * @param response_len length of the serialized CoAP response
  * @return true if the message was already seen within in the EXCHANGE_LIFETIME window, false otherwise.
  */
 bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, uint16_t mid, const void *session,
@@ -48,6 +49,13 @@ bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, uint16_t m
 bool coap_deduplication_set_response(coap_msg_dedup_t **message_dedup, uint16_t mid, const void *session,
                                      coap_packet_t *coap_response);
 
+/**
+ * Find the deduplication data for a given message.
+ * @param message_dedup list of message ids for deduplication
+ * @param mid message id
+ * @param session pointer to the session the message was received from
+ * @return pointer to the data or NULL if it is not found
+ */
 coap_msg_dedup_t *coap_deduplication_find(coap_msg_dedup_t *message_dedup, uint16_t mid, const void *session);
 
 /**

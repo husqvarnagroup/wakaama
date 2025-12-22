@@ -127,6 +127,46 @@ static void test_registration_message_to_server(void) {
     lwm2m_close(server_ctx);
 }
 
+static void test_registration_message_to_server_with_retransmission(void) {
+    /* arrange */
+    coap_packet_t packet;
+    memset(&packet, 0, sizeof(packet));
+    create_test_registration_message(&packet, LWM2M_CONTENT_LINK);
+
+    uint8_t reg_coap_msg[80];
+    memset(reg_coap_msg, 0, sizeof(reg_coap_msg));
+    size_t msg_size = coap_serialize_message(&packet, reg_coap_msg);
+    coap_free_header(&packet);
+
+    lwm2m_context_t *server_ctx = lwm2m_init(NULL);
+
+    lwm2m_handle_packet(server_ctx, reg_coap_msg, msg_size, NULL);
+
+    size_t send_buffer_len;
+    uint8_t *send_buffer = test_get_response_buffer(&send_buffer_len);
+    coap_packet_t actual_response_packet;
+    CU_ASSERT(18 >= send_buffer_len && send_buffer_len >= 14);
+    coap_status_t status = coap_parse_message(&actual_response_packet, send_buffer, send_buffer_len);
+    CU_ASSERT_EQUAL(status, NO_ERROR);
+    ASSERT_RESPONSE(actual_response_packet);
+    coap_free_header(&actual_response_packet);
+    lwm2m_close(server_ctx);
+
+    server_ctx = lwm2m_init(NULL);
+
+    lwm2m_handle_packet(server_ctx, reg_coap_msg, msg_size, NULL);
+
+    send_buffer = test_get_response_buffer(&send_buffer_len);
+    CU_ASSERT(18 >= send_buffer_len && send_buffer_len >= 14);
+    coap_packet_t actual_response_packet_2nd;
+    status = coap_parse_message(&actual_response_packet_2nd, send_buffer, send_buffer_len);
+    CU_ASSERT_EQUAL(status, NO_ERROR);
+    ASSERT_RESPONSE(actual_response_packet_2nd);
+    coap_free_header(&actual_response_packet_2nd);
+
+    lwm2m_close(server_ctx);
+}
+
 static void test_registration_message_to_server_wrong_content_type(void) {
 
     /* Only `LWM2M_CONTENT_TEXT` and `LWM2M_CONTENT_LINK` are allowed for registration. */
@@ -241,6 +281,8 @@ static void test_registration_with_two_rt(void) {
 
 static struct TestTable table[] = {
     {"test_registration_message_to_server", test_registration_message_to_server},
+    {"test_registration_message_to_server_with_retransmission",
+     test_registration_message_to_server_with_retransmission},
     {"test_registration_message_to_server_wrong_content_type", test_registration_message_to_server_wrong_content_type},
     {"test_registration_with_rt", test_registration_with_rt},
     {"test_registration_without_rt", test_registration_without_rt},

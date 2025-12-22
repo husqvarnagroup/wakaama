@@ -85,17 +85,13 @@ bool coap_check_message_duplication(coap_msg_dedup_t **message_dedup, const uint
 bool coap_deduplication_set_response(coap_msg_dedup_t **message_dedup, uint16_t mid, const void *session,
                                      coap_packet_t *coap_response) {
     LOG_DBG("Entering");
-    coap_msg_dedup_t *message_dedup_check = *message_dedup;
-    while (message_dedup_check != NULL) {
-        bool is_equal = lwm2m_session_is_equal(message_dedup_check->session, (void *)session, NULL);
-        if (message_dedup_check->mid == mid && is_equal) {
-            LOG_ARG_DBG("Set response code to message mid %" PRIu16, mid);
-            message_dedup_check->full_response_len =
-                message_serialize(coap_response, &message_dedup_check->full_response);
-            return true;
-        }
-        message_dedup_check = message_dedup_check->next;
+    coap_msg_dedup_t *message_dedup_check = coap_deduplication_find(*message_dedup, mid, session);
+    if (message_dedup_check != NULL) {
+        LOG_ARG_DBG("Set response to message mid %" PRIu16, mid);
+        message_dedup_check->full_response_len = message_serialize(coap_response, &message_dedup_check->full_response);
+        return true;
     }
+
     return false;
 }
 
